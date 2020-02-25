@@ -19,7 +19,7 @@ setup(
     url='https://github.com/engie-corp/zabel',
 
     author='Martin Lafaix',
-    author_email='rv5617@engie.com',
+    author_email='martin.lafaix@external.engie.com',
 
     license=' Eclipse Public License 2.0',
 
