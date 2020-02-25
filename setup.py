@@ -23,7 +23,7 @@ setup(
 
     license=' Eclipse Public License 2.0',
 
-    packages=find_namespace_packages(include=['zabel.commons.*']),
+    packages=find_namespace_packages(include=['zabel.*']),
 
     install_requires=['requests>=2.23'],
     python_requires='>= 3.6.5',
