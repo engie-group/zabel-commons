@@ -52,7 +52,7 @@ import inspect
 
 import requests
 
-from commons.exceptions import ApiError
+from .exceptions import ApiError
 
 __all__ = [
     'api_call',
