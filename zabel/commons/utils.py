@@ -41,7 +41,6 @@ from typing import (
     MutableMapping,
     Optional,
     Tuple,
-    Type,
     TypeVar,
     Union,
 )
