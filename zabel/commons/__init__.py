@@ -7,11 +7,13 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
-The transverse **commons** library
+The transverse **zabel.commons** package
 
-The **commons** library collects transverse classes, exceptions, and
-helper functions.
+The **zabel.commons** package collects transverse classes, exceptions,
+and helper functions.
 
-It provides four modules, #::commons.exceptions, #::commons.sessions,
-#::commons.servers, and #::commons.utils.
+It provides six modules, #::zabel.commons.credentials,
+#::zabel.commons.exceptions, #::zabel.comons.interfaces,
+#::zabel.commons.sessions, #::zabel.commons.servers, and
+#::zabel.commons.utils.
 """

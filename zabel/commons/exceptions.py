@@ -7,8 +7,8 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
-This module provides an #ApiError class that is used by the tooling
-package to represent unexpected events occurring while calling the
+This module provides an #ApiError class that is used by the **zabel**
+packages to represent unexpected events occurring while calling the
 underlying APIs.
 """
 
