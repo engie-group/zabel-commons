@@ -38,10 +38,9 @@ from typing import (
 
 import re
 
-from zabel.commons.exceptions import ApiError
-from zabel.commons.utils import api_call
+from .exceptions import ApiError
+from .utils import api_call
 
-ManagedProjectDefinition = Dict[str, Any]
 
 ########################################################################
 ## Constants
@@ -93,6 +92,45 @@ class Api:
     ) -> Any:
         """Update object from manifest."""
         raise NotImplementedError
+
+
+class ManagedProjectDefinition(Dict[str, Any]):
+    """Provides a simple wrapper for managed projects definitions.
+
+    Managed projects definitions are JSON files (handled as dictionaries
+    in Python).
+
+    The _ManagedProjectDefinition_ helper class inherits from `dict`,
+    and provides a single class method, `from_dict`.
+    """
+
+    @classmethod
+    def from_dict(cls, source: Dict[str, Any]) -> 'ManagedProjectDefinition':
+        """Convert a dictionary to a _ManagedProjectDefinition_ object.
+
+        # Required parameters
+
+        - source: a dictionary
+
+        Should a platform implementation provide its own wrapper, it
+        will most likely have to override this class method.
+        """
+        definition = cls()
+        for key in source:
+            definition[key] = source[key]
+        return definition
+
+    def acquire_context(self) -> None:
+        pass
+
+    def release_context(self) -> None:
+        pass
+
+    def get_selector(self) -> str:
+        return ''
+
+    def set_selector(self, selector: str) -> None:
+        pass
 
 
 class Manager:
