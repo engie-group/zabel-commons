@@ -8,10 +8,7 @@
 
 """
 This module provides a set of functions that can be useful while
-writing REST API servers.  It includes a decorator, #entrypoint,
-route helpers, and TODO.
-
-It depends on the public **bottle** library.
+writing REST API servers.  It includes a decorator, #entrypoint.
 
 # Decorators
 
