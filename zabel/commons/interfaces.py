@@ -7,24 +7,30 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
-This module provides six interfaces that are used to manage services:
+This module provides eight interfaces that are used to manage services:
 
-| Interfaces       | Description                                       |
-| ---------------- | ------------------------------------------------- |
-| #Controller      | Defines methods all controllers must implement.   |
-| #Api             | Defines methods all APIs must implement.          |
-| #Manager         | A simple marker for manager classes.              |
-| #Service         | Defines a handful of methods all services must
-                     implement.                                        |
-| #Utility         | Extends #Service and is implemented by the
-                     shared services (services that are used by
-                     multiple platforms or realms)                     |
-| #ManagedService  | Extends #Service and is implemented by the
-                     abstract classes wrapping each tool.  It defines
-                     the methods all managed services must implement
-                     (those relative to being a #Service and those
-                     relative to having members and pushing and
-                     pulling projects).                                |
+| Interfaces                | Description                              |
+| ------------------------- | ---------------------------------------- |
+| #Controller               | Defines methods all controllers must
+                              implement.                               |
+| #Api                      | Defines methods all APIs must implement. |
+| #ManagedProjectDefinition | An abstract class that represents a
+                              minimal managed project definition.      |
+| #ManagedAccount           | An abstract class that represents a
+                              minimal managed account.                 |
+| #Manager                  | A simple marker for manager classes.     |
+| #Service                  | Defines a handful of methods all
+                              services must implement.                 |
+| #Utility                  | Extends #Service and is implemented by
+                              the shared services (services that are
+                              used by multiple platforms or realms)    |
+| #ManagedService           | Extends #Service and is implemented by
+                              the abstract classes wrapping each tool.
+                              It defines the methods all managed
+                              services must implement (those relative
+                              to being a #Service and those relative
+                              to having members and pushing and
+                              pulling projects).                       |
 """
 
 
@@ -95,13 +101,15 @@ class Api:
 
 
 class ManagedProjectDefinition(Dict[str, Any]):
-    """Provides a simple wrapper for managed projects definitions.
+    """Managed Project Definition.
+
+    Provides a simple wrapper for _managed projects definitions_.
 
     Managed projects definitions are JSON files (handled as dictionaries
     in Python).
 
     The _ManagedProjectDefinition_ helper class inherits from `dict`,
-    and provides a single class method, `from_dict`.
+    and provides a single class method, `from_dict()`.
     """
 
     @classmethod
@@ -120,17 +128,39 @@ class ManagedProjectDefinition(Dict[str, Any]):
             definition[key] = source[key]
         return definition
 
-    def acquire_context(self) -> None:
-        pass
 
-    def release_context(self) -> None:
-        pass
+class ManagedAccount(Dict[str, Any]):
+    """Managed Account.
 
-    def get_selector(self) -> str:
-        return ''
+    Provides a simple wrapper for _managed accounts_.
 
-    def set_selector(self, selector: str) -> None:
-        pass
+    Managed accounts are object describing realm accounts (users,
+    technical users, readers, admins, ...).
+
+    Realm implementations may decide to provide their own wrapper, to
+    help manage managed accounts.
+
+    A managed account is attached to a realm.
+
+    The _ManagedAccount_ helper class inherits from dict, and provides a
+    single class method, `from_dict()`.
+    """
+
+    @classmethod
+    def from_dict(cls, dic: Dict[str, Any]) -> 'ManagedAccount':
+        """Convert a dictionary to a _ManagedAccount_ object.
+
+        # Required parameters
+
+        - dic: a dictionary
+
+        Should a platform implementation provide its own wrapper, it
+        will most likely have to override this class method.
+        """
+        definition = cls()
+        for key in dic:
+            definition[key] = dic[key]
+        return definition
 
 
 class Manager:
