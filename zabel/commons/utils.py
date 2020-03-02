@@ -117,6 +117,17 @@ def api_call(function: FuncT) -> FuncT:
     return _inner  # type: ignore
 
 
+def api_calls(cls):
+    """Decorate class methods with api_call.
+
+    Does not wraps class methods and static methods.
+    """
+    for name, val in vars(cls).items:
+        if callable(val):
+            setattr(cls, name, api_call(val))
+    return cls
+
+
 ########################################################################
 ########################################################################
 
