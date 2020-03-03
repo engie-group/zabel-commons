@@ -18,6 +18,8 @@ It depends on the public **requests** library.
 
 #api_call wraps functions that call a remote API.
 
+#api_client wraps methods of a class with the #api_call decorator.
+
 # XML Helpers
 
 #dict_to_xml() and #xml_to_dict().
@@ -117,7 +119,7 @@ def api_call(function: FuncT) -> FuncT:
     return _inner  # type: ignore
 
 
-def api_calls(cls):
+def api_client(cls):
     """Decorate class methods with api_call.
 
     Does not wraps class methods and static methods.
