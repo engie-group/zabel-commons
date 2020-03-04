@@ -32,6 +32,8 @@ DEFAULT_METHODS = {
     'delete': ['DELETE'],
 }
 
+ATTR_NAME = 'entrypoint routes'
+
 
 def entrypoint(path: str, methods: Optional[List[str]] = None):
     """Decorate a function so that it is exposed as an entrypoint.
@@ -46,18 +48,27 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
     @entrypoint('/foo/{bar}/baz/{foobar}')
     def get(self, bar, foobar):
         pass
+
+    @entrypoint('/foo1')
+    @entrypoint('/foo2')
+    def list():
+        pass
     ```
 
     Possible values for strings in `methods` are: `'GET'`, `'POST'`,
     `'PUT'`, `'DELETE'`, `'OPTIONS'`, and `'PATCH'`.
 
-    Decorated functions will have an `entrypoint route` attribute added,
-    which will contain a dictionary with the following entries:
+    Decorated functions will have an `entrypoint routes` attribute
+    added, which will contain a list of a dictionary with the following
+    entries:
 
     - path: a non-empty string
     - methods: a list of strings
 
     The decorated functions are otherwise unmodified.
+
+    There can be as many entrypoint decorators as required for a
+    function.
 
     # Required parameters
 
@@ -84,8 +95,9 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
             )
         setattr(
             f,
-            'entrypoint route',
-            {'path': path, 'methods': methods or _methods},
+            ATTR_NAME,
+            getattr(f, ATTR_NAME, [])
+            + [{'path': path, 'methods': methods or _methods}],
         )
         return f
 
