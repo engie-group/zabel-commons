@@ -76,27 +76,50 @@ class Api:
         raise NotImplementedError
 
     def get(
-        self, kind: str, name: str, namespace: Optional[str] = None
+        self,
+        kind: str,
+        name: str,
+        namespace: Optional[str] = None,
+        **kwargs: Any,
     ) -> Any:
         """Get an object."""
         raise NotImplementedError
 
     def delete(
-        self, kind: str, name: str, namespace: Optional[str] = None
+        self,
+        kind: str,
+        name: str,
+        namespace: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Delete object."""
         raise NotImplementedError
 
     def create(
-        self, body: Dict[str, Any], namespace: Optional[str] = None
+        self,
+        body: Dict[str, Any],
+        namespace: Optional[str] = None,
+        **kwargs: Any,
     ) -> Any:
         """Create object from manifest."""
         raise NotImplementedError
 
     def update(
-        self, body: Dict[str, Any], namespace: Optional[str] = None
+        self,
+        body: Dict[str, Any],
+        namespace: Optional[str] = None,
+        **kwargs: Any,
     ) -> Any:
         """Update object from manifest."""
+        raise NotImplementedError
+
+    def patch(
+        self,
+        body: Dict[str, Any],
+        namespace: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Patch object from manifest."""
         raise NotImplementedError
 
 
