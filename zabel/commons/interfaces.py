@@ -106,6 +106,8 @@ class Api:
 
     def update(
         self,
+        kind: str,
+        name: str,
         body: Dict[str, Any],
         namespace: Optional[str] = None,
         **kwargs: Any,
@@ -115,6 +117,8 @@ class Api:
 
     def patch(
         self,
+        kind: str,
+        name: str,
         body: Dict[str, Any],
         namespace: Optional[str] = None,
         **kwargs: Any,
