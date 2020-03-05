@@ -31,7 +31,7 @@ It depends on the public **requests** library.
 
 # Misc. Helpers
 
-#add_if_specified() and #join_url().
+#add_if_specified(), #patch(), and #join_url().
 """
 
 from typing import (
@@ -61,6 +61,7 @@ __all__ = [
     'dict_to_xml',
     'add_if_specified',
     'join_url',
+    'patch',
     'ensure_instance',
     'ensure_noneorinstance',
     'ensure_nonemptystring',
@@ -173,6 +174,44 @@ def dict_to_xml(dct: Mapping[str, Any]) -> str:
 ########################################################################
 
 # private helpers
+
+
+def patch(
+    destination: Dict[str, Any], changes: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Deep-merge two dictionaries.
+
+    # Required parameters
+
+    - `destination`: a dictionary
+    - `changes`: a dictionary
+
+    Overwrites entries in `destination` with values in `changes`.  In
+    other words, `changes` is a sparse dictionary, and its entries will
+    overwrite existing ones in `destination`.  Entries in `destination`
+    that are not in `changes` will be preserved as-is.
+
+    # Returned value
+
+    The patched dictionary.
+
+    ```python
+    >>> a = {'first': {'all_rows': {'pass': 'dog', 'number': '1'}}}
+    >>> b = {'first': {'all_rows': {'fail': 'cat', 'number': '5'}}}
+    >>> patch(a, b) == {'first': {'all_rows': {'pass': 'dog',
+    >>>                                        'fail': 'cat',
+    >>>                                        'number': '5'}}}
+    ```
+    """
+    for key, value in changes.items():
+        if isinstance(value, dict):
+            # get node or create one
+            node = destination.setdefault(key, {})
+            patch(node, value)
+        else:
+            destination[key] = value
+
+    return destination
 
 
 def add_if_specified(
