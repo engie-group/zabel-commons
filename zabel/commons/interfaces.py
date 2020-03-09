@@ -37,7 +37,6 @@ This module provides eight interfaces that are used to manage services:
 from typing import (
     Any,
     Dict,
-    List,
     Optional,
     Union,
 )
@@ -69,9 +68,24 @@ class Controller:
 class Api:
     """Abstract Api Wrapper."""
 
+    def list_allnamespaces(
+        self,
+        kind: str,
+        labelselector: str = '',
+        fieldselector: str = '',
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Return list of objects of specified kind, in all namespaces."""
+        raise NotImplementedError
+
     def list(
-        self, kind: str, namespace: Optional[str] = None, **kwargs: Any
-    ) -> List[Any]:
+        self,
+        kind: str,
+        namespace: str,
+        labelselector: str = '',
+        fieldselector: str = '',
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Return list of objects of specified kind."""
         raise NotImplementedError
 
@@ -81,7 +95,7 @@ class Api:
         name: str,
         namespace: Optional[str] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Dict[str, Any]:
         """Get an object."""
         raise NotImplementedError
 
@@ -97,10 +111,11 @@ class Api:
 
     def create(
         self,
+        kind: str,
         body: Dict[str, Any],
         namespace: Optional[str] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Dict[str, Any]:
         """Create object from manifest."""
         raise NotImplementedError
 
@@ -111,8 +126,8 @@ class Api:
         body: Dict[str, Any],
         namespace: Optional[str] = None,
         **kwargs: Any,
-    ) -> Any:
-        """Update object from manifest."""
+    ) -> Dict[str, Any]:
+        """Replace object from manifest."""
         raise NotImplementedError
 
     def patch(
@@ -122,7 +137,7 @@ class Api:
         body: Dict[str, Any],
         namespace: Optional[str] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Dict[str, Any]:
         """Patch object from manifest."""
         raise NotImplementedError
 
