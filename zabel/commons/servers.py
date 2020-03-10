@@ -15,7 +15,7 @@ writing REST API servers.  It includes a decorator, #entrypoint.
 #entrypoint marks functions as entrypoints.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 ########################################################################
@@ -35,7 +35,9 @@ DEFAULT_METHODS = {
 ATTR_NAME = 'entrypoint routes'
 
 
-def entrypoint(path: str, methods: Optional[List[str]] = None):
+def entrypoint(
+    path: Union[str, List[str]], methods: Optional[List[str]] = None
+):
     """Decorate a function so that it is exposed as an entrypoint.
 
     If the function it decorates does not have a 'standard' name,
@@ -53,6 +55,10 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
     @entrypoint('/foo2')
     def list():
         pass
+
+    @entrypoint(['/bar', '/baz'])
+    def list():
+        pass
     ```
 
     Possible values for strings in `methods` are: `'GET'`, `'POST'`,
@@ -62,7 +68,7 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
     added, which will contain a list of a dictionary with the following
     entries:
 
-    - path: a non-empty string
+    - path: a non-empty string or a list of non-empty strings
     - methods: a list of strings
 
     The decorated functions are otherwise unmodified.
@@ -72,7 +78,7 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
 
     # Required parameters
 
-    - path: a non-empty string
+    - path: a non-empty string or a list of non-empty strings
 
     # Optional parameters
 
@@ -97,8 +103,9 @@ def entrypoint(path: str, methods: Optional[List[str]] = None):
             f,
             ATTR_NAME,
             getattr(f, ATTR_NAME, [])
-            + [{'path': path, 'methods': methods or _methods}],
+            + [{'path': p, 'methods': methods or _methods} for p in paths],
         )
         return f
 
+    paths = [path] if isinstance(path, str) else path
     return inner
