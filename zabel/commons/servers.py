@@ -36,7 +36,9 @@ ATTR_NAME = 'entrypoint routes'
 
 
 def entrypoint(
-    path: Union[str, List[str]], methods: Optional[List[str]] = None
+    path: Union[str, List[str]],
+    methods: Optional[List[str]] = None,
+    rbac: bool = True,
 ):
     """Decorate a function so that it is exposed as an entrypoint.
 
@@ -70,6 +72,7 @@ def entrypoint(
 
     - path: a non-empty string or a list of non-empty strings
     - methods: a list of strings
+    - rbac: a boolean
 
     The decorated functions are otherwise unmodified.
 
@@ -83,6 +86,7 @@ def entrypoint(
     # Optional parameters
 
     - methods: a list of strings or None.  (None by default)
+    - rbac: a boolean. (True by default)
 
     # Raised exceptions
 
@@ -103,7 +107,10 @@ def entrypoint(
             f,
             ATTR_NAME,
             getattr(f, ATTR_NAME, [])
-            + [{'path': p, 'methods': methods or _methods} for p in paths],
+            + [
+                {'path': p, 'methods': methods or _methods, 'rbac': rbac}
+                for p in paths
+            ],
         )
         return f
 
