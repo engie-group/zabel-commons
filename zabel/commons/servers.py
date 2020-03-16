@@ -26,10 +26,10 @@ from typing import List, Optional, Union
 DEFAULT_METHODS = {
     'list': ['GET'],
     'get': ['GET'],
-    'update': ['PUT'],
     'create': ['POST'],
-    'patch': ['PATCH'],
+    'update': ['PUT'],
     'delete': ['DELETE'],
+    'patch': ['PATCH'],
 }
 
 ATTR_NAME = 'entrypoint routes'
@@ -64,7 +64,11 @@ def entrypoint(
     ```
 
     Possible values for strings in `methods` are: `'GET'`, `'POST'`,
-    `'PUT'`, `'DELETE'`, `'OPTIONS'`, and `'PATCH'`.
+    `'PUT'`, `'DELETE'`, `'PATCH'`, and `'OPTIONS'`.
+
+    The corresponding 'standard' names are `'list'` and `'get'`,
+    `'create'`, `'update'`, `'delete'`, and `'patch'`.  There is no
+    'standard' name for the `'OPTIONS'` method.
 
     Decorated functions will have an `entrypoint routes` attribute
     added, which will contain a list of a dictionary with the following
@@ -85,8 +89,8 @@ def entrypoint(
 
     # Optional parameters
 
-    - methods: a list of strings or None.  (None by default)
-    - rbac: a boolean. (True by default)
+    - methods: a list of strings or None (None by default).
+    - rbac: a boolean (True by default).
 
     # Raised exceptions
 
