@@ -13,7 +13,8 @@ This module provides eight interfaces that are used to manage services:
 | ------------------------- | ---------------------------------------- |
 | #Controller               | Defines methods all controllers must
                               implement.                               |
-| #Api                      | Defines methods all APIs must implement. |
+| #ApiServer                | Defines methods all ApiServers must
+                              implement.                               |
 | #ManagedProjectDefinition | An abstract class that represents a
                               minimal managed project definition.      |
 | #ManagedAccount           | An abstract class that represents a
@@ -107,6 +108,15 @@ class ApiServer:
         **kwargs: Any,
     ) -> None:
         """Delete object."""
+        raise NotImplementedError
+
+    def delete_collection(
+        self,
+        kind: str,
+        namespace: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Delete objects."""
         raise NotImplementedError
 
     def create(
