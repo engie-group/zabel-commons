@@ -65,8 +65,8 @@ class Controller:
     """Abstract Controller Wrapper."""
 
 
-class Api:
-    """Abstract Api Wrapper."""
+class ApiServer:
+    """Abstract Api Server Wrapper."""
 
     def list_allnamespaces(
         self,
