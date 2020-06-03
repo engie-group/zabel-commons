@@ -117,19 +117,19 @@ class ManagedAccount(Dict[str, Any]):
     """
 
     @classmethod
-    def from_dict(cls, dic: Dict[str, Any]) -> 'ManagedAccount':
+    def from_dict(cls, source: Dict[str, Any]) -> 'ManagedAccount':
         """Convert a dictionary to a _ManagedAccount_ object.
 
         # Required parameters
 
-        - dic: a dictionary
+        - source: a dictionary
 
         Should a platform implementation provide its own wrapper, it
         will most likely have to override this class method.
         """
         definition = cls()
-        for key in dic:
-            definition[key] = dic[key]
+        for key in source:
+            definition[key] = source[key]
         return definition
 
 
@@ -193,13 +193,12 @@ class Service:
     have a constructor with the following signature:
 
     ```python
-    def __init__(self, name, definition, credentials):
+    def __init__(self, name, env):
         ...
     ```
 
     Where `name` is a string (the name of the service on the platform),
-    `definition` is a dictionary (tool-specific), and `credentials` is a
-    #::Credentials object (or some object implementing its interface).
+    and `env` is a dictionary of strings.
 
     The `definition` dictionary contains at least the following entry:
 
