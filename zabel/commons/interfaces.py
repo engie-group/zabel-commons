@@ -13,7 +13,7 @@ This module provides eight interfaces that are used to manage services:
 | ------------------------- | ---------------------------------------- |
 | #Controller               | Defines methods all controllers must
                               implement.                               |
-| #ApiServer                | Defines methods all ApiServers must
+| #ApiService               | Defines methods all ApiServices must
                               implement.                               |
 | #ManagedProjectDefinition | An abstract class that represents a
                               minimal managed project definition.      |
@@ -66,90 +66,8 @@ class Controller:
     """Abstract Controller Wrapper."""
 
 
-class ApiServer:
-    """Abstract Api Server Wrapper."""
-
-    def list_allnamespaces(
-        self,
-        kind: str,
-        labelselector: str = '',
-        fieldselector: str = '',
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Return list of objects of specified kind, in all namespaces."""
-        raise NotImplementedError
-
-    def list(
-        self,
-        kind: str,
-        namespace: str,
-        labelselector: str = '',
-        fieldselector: str = '',
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Return list of objects of specified kind."""
-        raise NotImplementedError
-
-    def get(
-        self,
-        kind: str,
-        name: str,
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Get an object."""
-        raise NotImplementedError
-
-    def delete(
-        self,
-        kind: str,
-        name: str,
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Delete object."""
-        raise NotImplementedError
-
-    def delete_collection(
-        self,
-        kind: str,
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Delete objects."""
-        raise NotImplementedError
-
-    def create(
-        self,
-        kind: str,
-        body: Dict[str, Any],
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Create object from manifest."""
-        raise NotImplementedError
-
-    def update(
-        self,
-        kind: str,
-        name: str,
-        body: Dict[str, Any],
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Replace object from manifest."""
-        raise NotImplementedError
-
-    def patch(
-        self,
-        kind: str,
-        name: str,
-        body: Dict[str, Any],
-        namespace: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
-        """Patch object from manifest."""
-        raise NotImplementedError
+class ApiService:
+    """Abstract Api Service Wrapper."""
 
 
 class ManagedProjectDefinition(Dict[str, Any]):
