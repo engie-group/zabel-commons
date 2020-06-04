@@ -11,7 +11,7 @@ from setuptools import setup, find_namespace_packages
 
 setup(
     name='zabel-commons',
-    version='0.10.0',
+    version='1.0.0',
     description='The Zabel transverse **commons** library',
     long_description='',
     url='https://github.com/engie-corp/zabel',
