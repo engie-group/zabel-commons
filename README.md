@@ -26,7 +26,7 @@ dependencies.
 ## License
 
 ```text
-Copyright (c) 2019-2020 Martin Lafaix (rv5617@engie.com) and others
+Copyright (c) 2019-2020 Martin Lafaix (martin.lafaix@external.engie.com) and others
 
 This program and the accompanying materials are made
 available under the terms of the Eclipse Public License 2.0
