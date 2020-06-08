@@ -7,24 +7,23 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
-This module provides eight interfaces that are used to manage services:
+This module provides nine interfaces that are used to manage services:
 
 | Interfaces                | Description                              |
 | ------------------------- | ---------------------------------------- |
-| #Controller               | Defines methods all controllers must
-                              implement.                               |
 | #ApiService               | Defines methods all ApiServices must
                               implement.                               |
+| #Controller               | Defines methods all controllers must
+                              implement.                               |
+| #Image                    | Defines methods all images must
+                              implement.                               |
+| #Manager                  | A simple marker for manager classes.     |
 | #ManagedProjectDefinition | An abstract class that represents a
                               minimal managed project definition.      |
 | #ManagedAccount           | An abstract class that represents a
                               minimal managed account.                 |
-| #Manager                  | A simple marker for manager classes.     |
 | #Service                  | Defines a handful of methods all
                               services must implement.                 |
-| #Utility                  | Extends #Service and is implemented by
-                              the shared services (services that are
-                              used by multiple platforms or realms)    |
 | #ManagedService           | Extends #Service and is implemented by
                               the abstract classes wrapping each tool.
                               It defines the methods all managed
@@ -32,6 +31,9 @@ This module provides eight interfaces that are used to manage services:
                               to being a #Service and those relative
                               to having members and pushing and
                               pulling projects).                       |
+| #Utility                  | Extends #Service and is implemented by
+                              the shared services (services that are
+                              used by multiple platforms or realms)    |
 """
 
 
@@ -62,12 +64,69 @@ EXISTS_EXPR = rf'^{KEY}$'
 ## Interfaces
 
 
-class Controller:
-    """Abstract Controller Wrapper."""
+## Fabric
 
 
 class ApiService:
     """Abstract Api Service Wrapper."""
+
+
+class Controller:
+    """Abstract Controller Wrapper."""
+
+
+class Image:
+    """Abstract Image Wrapper.
+
+    Provides a minimal set of features an image must provide:
+
+    - constructor (`__init__`)
+    - a `run()` method
+
+    Implementing classes must have a constructor with the following
+    signature:
+
+    ```python
+    def __init__(self, name, env):
+        ...
+    ```
+
+    Where `name` is a string (the name of the instance of the image),
+    and `env` is a dictionary of strings.
+
+    The `run()` method takes no parameters.  It represents the image
+    activity,.
+    """
+
+
+## Core
+
+
+class Manager:
+    """Abstract Manager Wrapper.
+
+    A simple marker for manager classes.
+
+    # Properties
+
+    | Property name | Description          | Default implementation? |
+    | ------------- | -------------------- | ----------------------- |
+    | `platform`    | The platform the
+                      manager is part of.  | Yes (read/write)        |
+    """
+
+    _platform: Any
+
+    @property
+    def platform(self) -> Any:
+        """Return the Platform the manager is attached to."""
+        return self._platform
+
+    @platform.setter
+    def platform(self, value: Any) -> None:
+        """Set the Platform the manager is attached to."""
+        # pylint: disable=attribute-defined-outside-init
+        self._platform = value
 
 
 class ManagedProjectDefinition(Dict[str, Any]):
@@ -133,39 +192,11 @@ class ManagedAccount(Dict[str, Any]):
         return definition
 
 
-class Manager:
-    """Abstract Manager Wrapper.
-
-    A simple marker for manager classes.
-
-    # Properties
-
-    | Property name | Description          | Default implementation? |
-    | ------------- | -------------------- | ----------------------- |
-    | `platform`    | The platform the
-                      manager is part of.  | Yes (read/write)        |
-    """
-
-    _platform: Any
-
-    @property
-    def platform(self) -> Any:
-        """Return the Platform the manager is attached to."""
-        return self._platform
-
-    @platform.setter
-    def platform(self, value: Any) -> None:
-        """Set the Platform the manager is attached to."""
-        # pylint: disable=attribute-defined-outside-init
-        self._platform = value
-
-
 class Service:
     """Abstract Service Wrapper.
 
     Provides a minimal set of features a service must provide.
 
-    - constructor (`__init__`)
     - accessors for name and platform
 
     # Properties
@@ -188,26 +219,6 @@ class Service:
 
     Some features provide default implementation, but those default
     implementations may not be very efficient.
-
-    In addition to the included methods, implementing classes must also
-    have a constructor with the following signature:
-
-    ```python
-    def __init__(self, name, env):
-        ...
-    ```
-
-    Where `name` is a string (the name of the service on the platform),
-    and `env` is a dictionary of strings.
-
-    The `definition` dictionary contains at least the following entry:
-
-    - `type (class)`: a class object
-
-    It may contain additional entries, such as `url` (a string), but
-    this is service-dependent.
-
-    Those entries are typically set in the platform definition.
     """
 
     _metadata: Dict[str, Any]
