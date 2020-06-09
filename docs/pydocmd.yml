@@ -1,0 +1,36 @@
+site_name: zabel-commons
+
+generate:
+  - commons.md:
+    - zabel.commons
+  - commons/exceptions.md:
+    - zabel.commons.exceptions++
+  - commons/sessions.md:
+    - zabel.commons.sessions++
+  - commons/utils.md:
+    - zabel.commons.utils++
+  - commons/interfaces.md:
+    - zabel.commons.interfaces++
+  - commons/servers.md:
+    - zabel.commons.servers++
+
+pages:
+  - Home: index.md << ../README.md
+  - API Documentation:
+    - Commons Library:
+      - Overview: commons.md
+      - commons.exceptions: commons/exceptions.md
+      - commons.sessions: commons/sessions.md
+      - commons.utils: commons/utils.md
+
+sort: name
+theme:
+  name: 'material'
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - smarty
+
+headers: markdown
