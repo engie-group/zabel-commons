@@ -19,9 +19,11 @@ pages:
   - API Documentation:
     - Commons Library:
       - Overview: commons.md
-      - commons.exceptions: commons/exceptions.md
-      - commons.sessions: commons/sessions.md
-      - commons.utils: commons/utils.md
+      - zabel.commons.exceptions: commons/exceptions.md
+      - zabel.commons.interfaces: commons/interfaces.md
+      - zabel.commons.servers: commons/servers.md
+      - zabel.commons.sessions: commons/sessions.md
+      - zabel.commons.utils: commons/utils.md
 
 sort: name
 theme:
