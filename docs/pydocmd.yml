@@ -1,4 +1,4 @@
-site_name: zabel-commons
+site_name: Zabel Commons
 
 generate:
   - commons.md:
