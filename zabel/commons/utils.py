@@ -125,7 +125,7 @@ def api_client(cls):
 
     Does not wraps class methods and static methods.
     """
-    for name, val in vars(cls).items:
+    for name, val in vars(cls).items():
         if callable(val):
             setattr(cls, name, api_call(val))
     return cls
