@@ -43,7 +43,8 @@ def entrypoint(
     """Decorate a function so that it is exposed as an entrypoint.
 
     If the function it decorates does not have a 'standard' name,
-    `methods` must be specified.
+    or if its name does not start with a 'standard' prefix, `methods`
+    must be specified.
 
     `path` may contain _placeholders_, that will be mapped to function
     parameters at call time:
@@ -69,6 +70,9 @@ def entrypoint(
     The corresponding 'standard' names are `'list'` and `'get'`,
     `'create'`, `'update'`, `'delete'`, and `'patch'`.  There is no
     'standard' name for the `'OPTIONS'` method.
+
+    'Standard' prefixes are standard names followed by `'_'`, such
+    as `'list_foo'`.
 
     Decorated functions will have an `entrypoint routes` attribute
     added, which will contain a list of a dictionary with the following
@@ -102,7 +106,12 @@ def entrypoint(
     """
 
     def inner(f):
-        _methods = DEFAULT_METHODS.get(f.__name__)
+        for prefix, words in DEFAULT_METHODS.items():
+            if f.__name__ == prefix or f.__name__.starswith(f'{prefix}_'):
+                _methods = words
+                break
+        else:
+            _methods = None
         if _methods is None and methods is None:
             raise ValueError(
                 f"Nonstandard entrypoint '{f.__name__}', 'methods' parameter required."
