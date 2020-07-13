@@ -173,7 +173,7 @@ def dict_to_xml(dct: Mapping[str, Any]) -> str:
 ########################################################################
 ########################################################################
 
-# private helpers
+# misc. helpers
 
 
 def patch(
@@ -355,7 +355,7 @@ def ensure_nonemptystring(name: str) -> None:
 
     val = _getlocal(inspect.currentframe(), name)
     if not _isnonemptystring(val):
-        raise ValueError('%s must be a non-empty string.' % name)
+        raise ValueError(f'{name} must be a non-empty string.')
 
 
 def ensure_noneornonemptystring(name: str) -> None:
@@ -373,7 +373,7 @@ def ensure_noneornonemptystring(name: str) -> None:
 
     val = _getlocal(inspect.currentframe(), name)
     if not _isnoneornonemptystring(val):
-        raise ValueError('%s must be a non-empty string if specified.' % name)
+        raise ValueError(f'{name} must be a non-empty string if specified.')
 
 
 def ensure_onlyone(name1: str, name2: str) -> None:
@@ -394,10 +394,10 @@ def ensure_onlyone(name1: str, name2: str) -> None:
     val1 = _getlocal(inspect.currentframe(), name1)
     val2 = _getlocal(inspect.currentframe(), name2)
     if val1 is None and val2 is None:
-        raise ValueError('Either %s or %s must be specified.' % (name1, name2))
+        raise ValueError(f'Either {name1} or {name2} must be specified.')
     if val1 is not None and val2 is not None:
         raise ValueError(
-            '%s and %s cannot be specified simultaneously.' % (name1, name2)
+            f'{name1} and {name2} cannot be specified simultaneously.'
         )
 
 

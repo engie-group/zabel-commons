@@ -95,7 +95,7 @@ class Image:
     and `env` is a dictionary of strings.
 
     The `run()` method takes no parameters.  It represents the image
-    activity,.
+    activity.
     """
 
 
