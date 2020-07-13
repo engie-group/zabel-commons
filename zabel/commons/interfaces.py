@@ -37,12 +37,7 @@ This module provides nine interfaces that are used to manage services:
 """
 
 
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Union,
-)
+from typing import Any, Dict, Union
 
 import re
 

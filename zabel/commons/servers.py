@@ -107,7 +107,7 @@ def entrypoint(
 
     def inner(f):
         for prefix, words in DEFAULT_METHODS.items():
-            if f.__name__ == prefix or f.__name__.starswith(f'{prefix}_'):
+            if f.__name__ == prefix or f.__name__.startswith(f'{prefix}_'):
                 _methods = words
                 break
         else:
