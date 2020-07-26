@@ -22,17 +22,17 @@ This module provides nine interfaces that are used to manage services:
                               minimal managed project definition.      |
 | #ManagedAccount           | An abstract class that represents a
                               minimal managed account.                 |
-| #Service                  | Defines a handful of methods all
+| #ServiceBase              | Defines a handful of methods all
                               services must implement.                 |
-| #ManagedService           | Extends #Service and is implemented by
-                              the abstract classes wrapping each tool.
-                              It defines the methods all managed
+| #ManagedService           | Extends #ServiceBase and is implemented
+                              by the abstract classes wrapping each
+                              tool.  It defines the methods all managed
                               services must implement (those relative
-                              to being a #Service and those relative
-                              to having members and pushing and
-                              pulling projects).                       |
-| #Utility                  | Extends #Service and is implemented by
-                              the shared services (services that are
+                              to being an #ServiceBase and those
+                              relative to having members and pushing
+                              and pulling projects).                   |
+| #Utility                  | Extends #ServiceBase and is implemented
+                              by the shared services (services that are
                               used by multiple platforms or realms)    |
 """
 
@@ -192,7 +192,7 @@ class ManagedAccount(Dict[str, Any]):
         return definition
 
 
-class Service:
+class ServiceBase:
     """Abstract Service Wrapper.
 
     Provides a minimal set of features a service must provide.
@@ -321,21 +321,21 @@ class Service:
         return all(_evaluate(sel.strip()) for sel in selector.split(','))
 
 
-class Utility(Service):
+class Utility(ServiceBase):
     """Abstract Shared Service Wrapper.
 
-    This class extends #Service and is abstract.  It declares a minimal
-    set of features a utility (a shared service) must provide, in
-    addition to the #Service ones.
+    This class extends #ServiceBase and is abstract.  It declares a
+    minimal set of features a utility (a shared service) must provide,
+    in addition to the #ServiceBase ones.
     """
 
 
-class ManagedService(Service):
+class ManagedService(ServiceBase):
     """Abstract Managed Service Wrapper.
 
-    This class extends #Service and is abstract.  It declares a minimal
-    set of features a managed service must provide, in addition to
-    the #Service ones:
+    This class extends #ServiceBase and is abstract.  It declares a
+    minimal set of features a managed service must provide, in addition
+    to the #ServiceBase ones:
 
     - canonical user names management
     - members getters
