@@ -22,16 +22,16 @@ This module provides nine interfaces that are used to manage services:
                               minimal managed project definition.      |
 | #ManagedAccount           | An abstract class that represents a
                               minimal managed account.                 |
-| #ServiceBase              | Defines a handful of methods all
+| #BaseService              | Defines a handful of methods all
                               services must implement.                 |
-| #ManagedService           | Extends #ServiceBase and is implemented
+| #ManagedService           | Extends #BaseService and is implemented
                               by the abstract classes wrapping each
                               tool.  It defines the methods all managed
                               services must implement (those relative
-                              to being an #ServiceBase and those
+                              to being an #BaseService and those
                               relative to having members and pushing
                               and pulling projects).                   |
-| #Utility                  | Extends #ServiceBase and is implemented
+| #Utility                  | Extends #BaseService and is implemented
                               by the shared services (services that are
                               used by multiple platforms or realms)    |
 """
@@ -187,7 +187,7 @@ class ManagedAccount(Dict[str, Any]):
         return definition
 
 
-class ServiceBase:
+class BaseService:
     """Abstract Service Wrapper.
 
     Provides a minimal set of features a service must provide.
@@ -316,21 +316,21 @@ class ServiceBase:
         return all(_evaluate(sel.strip()) for sel in selector.split(','))
 
 
-class Utility(ServiceBase):
+class Utility(BaseService):
     """Abstract Shared Service Wrapper.
 
-    This class extends #ServiceBase and is abstract.  It declares a
+    This class extends #BaseService and is abstract.  It declares a
     minimal set of features a utility (a shared service) must provide,
-    in addition to the #ServiceBase ones.
+    in addition to the #BaseService ones.
     """
 
 
-class ManagedService(ServiceBase):
+class ManagedService(BaseService):
     """Abstract Managed Service Wrapper.
 
-    This class extends #ServiceBase and is abstract.  It declares a
+    This class extends #BaseService and is abstract.  It declares a
     minimal set of features a managed service must provide, in addition
-    to the #ServiceBase ones:
+    to the #BaseService ones:
 
     - canonical user names management
     - members getters
