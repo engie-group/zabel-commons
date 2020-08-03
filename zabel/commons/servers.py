@@ -21,6 +21,17 @@ from typing import List, Optional, Union
 ########################################################################
 ########################################################################
 
+# security headers
+
+DEFAULT_HEADERS = {
+    'Content-Type': 'application/json',
+    'Strict-Transport-Security': 'max-aincludeSubDomains',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy': 'default-src \'none\'',
+}
+
 # decorators
 
 DEFAULT_METHODS = {
