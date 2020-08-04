@@ -8,20 +8,24 @@
 
 """
 This module provides a set of functions that can be useful while
-writing REST API servers.  It includes a decorator, #entrypoint.
+writing REST API servers.  It includes a decorator, #entrypoint, as
+well as a set of helpers: #make_status and #make_items.
+
+It also provides some commonly-used references, `DEFAULT_HEADERS` and
+`REASON_STATUS`.
 
 # Decorators
 
 #entrypoint marks functions as entrypoints.
 """
 
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 ########################################################################
 ########################################################################
 
-# security headers
+# Security Headers
 
 DEFAULT_HEADERS = {
     'Content-Type': 'application/json',
@@ -32,7 +36,84 @@ DEFAULT_HEADERS = {
     'Content-Security-Policy': 'default-src \'none\'',
 }
 
-# decorators
+
+# API Server Helpers
+
+REASON_STATUS = {
+    'OK': 200,
+    'Created': 201,
+    'NoContent': 204,
+    'BadRequest': 400,
+    'Unauthorized': 401,
+    'PaymentRequired': 402,
+    'Forbidden': 403,
+    'NotFound': 404,
+    'AlreadyExists': 409,
+    'Conflict': 409,
+    'Invalid': 422,
+}
+
+
+def make_status(
+    reason: str, message: str, details: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Return a new status object.
+
+    # Required parameters
+
+    - reason: a non-empty string (must exist in `REASON_STATUS`)
+    - message: a string
+
+    # Optional parameters:
+
+    - details: a dictinnary or None (None by default)
+
+    # Returned value
+
+    A _status_.  A status is a dictionary with the following entries:
+
+    - kind: a string (`'Status'`)
+    - apiVersion: a string (`'v1'`)
+    - metadata: an empty dictionary
+    - status: a string (either `'Success'` or `'Failure'`)
+    - message: a string (`message`)
+    - reason: a string (`reason`)
+    - details: a dictionary or None (`details`)
+    - code: an integer (derived from `reason`)
+    """
+    code = REASON_STATUS[reason]
+    return {
+        'kind': 'Status',
+        'apiVersion': 'v1',
+        'metadata': {},
+        'status': 'Success' if code // 100 == 2 else 'Failure',
+        'message': message,
+        'reason': reason,
+        'details': details,
+        'code': code,
+    }
+
+
+def make_items(kind: str, what: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Return list object.
+
+    # Required parameters
+
+    - kind: a non-empty string
+    - what: a list of dictionaries
+
+    # Returned value
+
+    A _list_.  A list is a dictionary with the following entries:
+
+    - kind: a string
+    - apiVersion: a string (`'v1'`)
+    - items: a list of dictionaries (`what`)
+    """
+    return {'apiVersion': 'v1', 'kind': f'{kind}List', 'items': what}
+
+
+# Decorators
 
 DEFAULT_METHODS = {
     'list': ['GET'],
