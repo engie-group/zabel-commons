@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Union
 
 DEFAULT_HEADERS = {
     'Content-Type': 'application/json',
-    'Strict-Transport-Security': 'max-aincludeSubDomains',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
     'X-Frame-Options': 'SAMEORIGIN',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
