@@ -82,12 +82,9 @@ class Image:
     signature:
 
     ```python
-    def __init__(self, name, env):
+    def __init__(self):
         ...
     ```
-
-    Where `name` is a string (the name of the instance of the image),
-    and `env` is a dictionary of strings.
 
     The `run()` method takes no parameters.  It represents the image
     activity.
