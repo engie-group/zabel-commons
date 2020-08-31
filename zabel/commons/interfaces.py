@@ -86,8 +86,8 @@ class Image:
         ...
     ```
 
-    The `run()` method takes no parameters.  It represents the image
-    activity.
+    The `run()` method takes any number of parameters.  It represents
+    the image activity.
     """
 
 
