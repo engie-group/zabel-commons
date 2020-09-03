@@ -43,6 +43,7 @@ import re
 
 from .exceptions import ApiError
 from .utils import api_call
+from .servers import entrypoint
 
 
 ########################################################################
@@ -335,16 +336,16 @@ class ManagedService(BaseService):
 
     # Added Methods
 
-    | Method name                | Default implementation? |
-    | -------------------------- | ------------------------|
-    | #get_canonical_member_id() | No                      |
-    | #get_internal_member_id()  | No                      |
-    | #list_members()            | No                      |
-    | #get_member()              | No                      |
-    | #push_project()            | No                      |
-    | #push_users()              | No                      |
-    | #pull_project()            | No                      |
-    | #pull_users()              | No                      |
+    | Method name                | Default implementation? | Exposed? |
+    | -------------------------- | ------------------------| -------- |
+    | #get_canonical_member_id() | No                      | No       |
+    | #get_internal_member_id()  | No                      | No       |
+    | #list_members()            | No                      | Yes      |
+    | #get_member()              | No                      | Yes      |
+    | #push_project()            | No                      | Yes      |
+    | #push_users()              | No                      | Yes      |
+    | #pull_project()            | No                      | Yes      |
+    | #pull_users()              | No                      | Yes      |
 
     Unimplemented features will raise a _NotImplementedError_
     exception.
@@ -381,7 +382,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/members')
     def list_members(self) -> Dict[str, Any]:
         """Return the members on the service.
 
@@ -392,7 +393,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/members/{member_id}')
     def get_member(self, member_id: str) -> Any:
         """Return details on user.
 
@@ -409,7 +410,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/managedprojects/{project}', methods=['PUT'])
     def push_project(self, project: ManagedProjectDefinition) -> None:
         """Push (aka publish) managed project on service.
 
@@ -427,7 +428,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/managedprojects/{project}/members', methods=['PUT'])
     def push_users(self, project: ManagedProjectDefinition) -> None:
         """Push (aka publish) managed project users on service.
 
@@ -448,7 +449,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/managedprojects/{project}', methods=['GET'])
     def pull_project(self, project: ManagedProjectDefinition) -> Any:
         """Pull (aka extract) managed project users on service.
 
@@ -458,7 +459,7 @@ class ManagedService(BaseService):
         """
         raise NotImplementedError
 
-    @api_call
+    @entrypoint('/v1/managedprojects/{project}/members', methods=['GET'])
     def pull_users(self, project: ManagedProjectDefinition) -> Any:
         """Pull (aka extract) managed project definition on service.
 
