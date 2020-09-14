@@ -411,7 +411,7 @@ class ManagedService(BaseService):
         raise NotImplementedError
 
     @entrypoint('/v1/managedprojects/{project}', methods=['PUT'])
-    def push_project(self, project: ManagedProjectDefinition) -> None:
+    def push_project(self, project: str) -> None:
         """Push (aka publish) managed project on service.
 
         Members defined for the project are not pushed on service.  Use
@@ -419,7 +419,7 @@ class ManagedService(BaseService):
 
         # Required parameters
 
-        - project: a managed project definition
+        - project: a managed project definition name
 
         # Raised exceptions
 
@@ -429,7 +429,7 @@ class ManagedService(BaseService):
         raise NotImplementedError
 
     @entrypoint('/v1/managedprojects/{project}/members', methods=['PUT'])
-    def push_users(self, project: ManagedProjectDefinition) -> None:
+    def push_users(self, project: str) -> None:
         """Push (aka publish) managed project users on service.
 
         It assumes the project has been previously successfully pushed.
@@ -437,7 +437,7 @@ class ManagedService(BaseService):
 
         # Required parameters
 
-        - project: a managed project definition
+        - project: a managed project definition name
 
         It assumes the project has been previously successfully pushed
         on the service.
@@ -450,21 +450,21 @@ class ManagedService(BaseService):
         raise NotImplementedError
 
     @entrypoint('/v1/managedprojects/{project}', methods=['GET'])
-    def pull_project(self, project: ManagedProjectDefinition) -> Any:
+    def pull_project(self, project: str) -> Any:
         """Pull (aka extract) managed project users on service.
 
         # Required parameters
 
-        - project: a managed project definition
+        - project: a managed project definition name
         """
         raise NotImplementedError
 
     @entrypoint('/v1/managedprojects/{project}/members', methods=['GET'])
-    def pull_users(self, project: ManagedProjectDefinition) -> Any:
+    def pull_users(self, project: str) -> Any:
         """Pull (aka extract) managed project definition on service.
 
         # Required parameters
 
-        - project: a managed project definition
+        - project: a managed project definition name
         """
         raise NotImplementedError
