@@ -39,11 +39,10 @@ This module provides nine interfaces that are used to manage services:
 
 from typing import Any, Dict, Union
 
-import re
+import json
 
 from .exceptions import ApiError
-from .utils import api_call
-from .servers import entrypoint
+from .servers import entrypoint, DEFAULT_HEADERS
 
 
 ########################################################################
@@ -185,12 +184,71 @@ class ManagedAccount(Dict[str, Any]):
         return definition
 
 
-class BaseService:
+def _read_server_params(args, host, port):
+    host = args[args.index('--host') + 1] if '--host' in args else host
+    port = int(args[args.index('--port') + 1]) if '--port' in args else port
+    return host, port
+
+
+class BaseService(Image):
     """Abstract Service Wrapper.
 
     Provides a minimal set of features a service must provide.
 
     - accessors for name and platform
+
+    _BaseService_ instances are expected to expose some entrypoints and
+    make them available through a web server.
+
+    This class provides a default implementation of such a server and
+    exposes the defined entrypoints.
+
+    Its `run()` that takes any number of string arguments.  It starts a
+    web server on the host and port provided via `--host` and `--port`
+    arguments, or, if not specified, via the `host` and `port` instance
+    attributes, or `localhost` on port 8080 if none of the above are
+    available:
+
+    ```python
+    # Explicit host and port
+    foo.run('--host', '0.0.0.0', '--port', '80')
+
+    # Explicit host, default port (8080)
+    foo.run('--host', '192.168.12.34')
+
+    # Host specified for the object, default port (8080)
+    foo.host = '10.0.0.1'
+    foo.run()
+
+    # Default host and port (localhost:8080)
+    foo.run()
+    ```
+
+    The exposed entrypoints are those defined on all instance members.
+    The entrypoint definitions are inherited (i.e., you don't have to
+    redefine them if they are already defined).
+
+    ```python
+    class Foo(BasicService):
+        @entrypoint('/foo/bar')
+        def get_bar():
+            ...
+
+    class FooBar(Foo):
+        def get_bar():
+            return 'foobar.get_bar'
+
+    FooBar().run()  # curl localhost:8080/foo/bar -> foobar.get_bar
+    ```
+
+    **Note**: You can redefine the entrypoint attached to a method.
+    Simply add a new `@entrypoint` decorator to the method.  And, if
+    you want to disable the entrypoint, use `[]` as the path.
+
+    **Note**: The web server is implemented using Bottle.  If you prefer
+    or need to use another wsgi server, simple override the `run()`
+    method in your class.  Your class will then have no dependency on
+    Bottle.
 
     # Properties
 
@@ -206,7 +264,8 @@ class BaseService:
 
     | Method name               | Default implementation? |
     | ------------------------- | ----------------------- |
-    | #match_selector()         | Yes                     |
+    | #ensure_authn()           | No                      |
+    | #run()                    | Yes                     |
 
     Unimplemented features will raise a _NotImplementedError_ exception.
 
@@ -269,49 +328,76 @@ class BaseService:
         # pylint: disable=attribute-defined-outside-init
         self._platform = value
 
-    def match_selector(self, selector: str) -> bool:
-        """Return True if the service match the selector.
+    def ensure_authn(self):
+        """..."""
+        raise NotImplementedError
 
-        An empty selector always match.
+    def run(self, *args):
+        """Start a bottle app for instance.
 
-        Currently, a subset of what should be done has been implemented:
+        # Optional parameters
 
-            expr[,expr]*
-
-        where `expr` is one of `key`, `!key`, or `key op value`, with
-        `op` being one of `=`, `==`, or `!=`.
-
-        The `in` and `notin` set-based requirements have yet to be
-        implemented.
-
-        # Required parameters
-
-        - selector: a string
+        - *args: strings.  See class definition for more details.
 
         # Returned value
 
-        A boolean.
+        If the server thread dies, returns the exception.  Does not
+        return otherwise.
         """
-        labels: Dict[str, str] = self.metadata.get('labels', {})
+        # pylint: disable=import-outside-toplevel
+        from bottle import Bottle, request, response
 
-        def _evaluate(req: str) -> bool:
-            if req == '':
-                return True
-            if re.match(EXISTS_EXPR, req):
-                return req in labels
-            if req[0] == '!' and re.match(EXISTS_EXPR, req[1:]):
-                return req[1:] not in labels
-            expr = re.match(EQUAL_EXPR, req)
-            if expr is None:
-                raise ValueError(f'Invalid expression {expr}.')
-            key, ope, value = expr.groups()
-            if key in labels:
-                if ope in ('=', '=='):
-                    return labels[key] == value
-                return labels[key] != value
-            return ope == '!='
+        def wrap(handler, rbac: bool):
+            def inner(*args, **kwargs):
+                for header, value in DEFAULT_HEADERS.items():
+                    response.headers[header] = value
+                if rbac:
+                    try:
+                        self.ensure_authn()
+                    except ValueError as err:
+                        resp = err.args[0]
+                        response.status = resp['code']
+                        return resp
+                if request.json:
+                    kwargs['body'] = request.json
+                try:
+                    result = json.dumps(handler(*args, **kwargs))
+                    return result
+                except ValueError as err:
+                    resp = err.args[0]
+                    response.status = resp['code']
+                    return resp
 
-        return all(_evaluate(sel.strip()) for sel in selector.split(','))
+            return inner
+
+        if not hasattr(self, 'port'):
+            # pylint: disable=attribute-defined-outside-init
+            self.port = 8080
+        if not hasattr(self, 'localhost'):
+            # pylint: disable=attribute-defined-outside-init
+            self.host = 'localhost'
+
+        # pylint: disable=attribute-defined-outside-init
+        self.app = Bottle()
+
+        for name in dir(self):
+            method = getattr(self, name, None)
+            if method:
+                # The 'entrypoint routes' attr may be on a super method
+                sms = [getattr(c, name, None) for c in self.__class__.mro()]
+                eps = [getattr(m, 'entrypoint routes', None) for m in sms]
+                for route in next((routes for routes in eps if routes), []):
+                    self.app.route(
+                        path=route['path'].replace('{', '<').replace('}', '>'),
+                        method=route['methods'],
+                        callback=wrap(method, route['rbac']),
+                    )
+
+        host, port = _read_server_params(args, host=self.host, port=self.port)
+        try:
+            self.app.run(host=host, port=port)
+        except Exception as err:
+            return err
 
 
 class Utility(BaseService):
