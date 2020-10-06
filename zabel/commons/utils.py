@@ -215,7 +215,7 @@ def patch(
 
 
 def add_if_specified(
-    dct: MutableMapping[str, Any], key: str, val: Any,
+    dct: MutableMapping[str, Any], key: str, val: Any
 ) -> None:
     """Add a key:value pair to dictionary if value is not None.
 
