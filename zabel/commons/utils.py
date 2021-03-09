@@ -376,28 +376,28 @@ def ensure_noneornonemptystring(name: str) -> None:
         raise ValueError(f'{name} must be a non-empty string if specified.')
 
 
-def ensure_onlyone(name1: str, name2: str) -> None:
-    """Ensure name1 or name2 is defined, but not both.
+def ensure_onlyone(*names: str) -> None:
+    """Ensure one and only one name is not None.
 
     # Required parameters
 
-    - name1: a string, the name of a local variable to check
-    - name2: a string, the name of a local variable to check
+    - names: a non-empty tuple of non-empty string, the names of the
+      local variables to check
 
     # Raised exceptions
 
     Raise _ValueError_ if the condition is not satisfied.
     """
-    ensure_nonemptystring('name1')
-    ensure_nonemptystring('name2')
+    ensure_instance('names', tuple)
 
-    val1 = _getlocal(inspect.currentframe(), name1)
-    val2 = _getlocal(inspect.currentframe(), name2)
-    if val1 is None and val2 is None:
-        raise ValueError(f'Either {name1} or {name2} must be specified.')
-    if val1 is not None and val2 is not None:
+    current_frame = inspect.currentframe()
+    existing = [_getlocal(current_frame, name) for name in names]
+    if existing.count(None) != len(existing) - 1:
+        bad = [
+            name for name, exist in zip(names, existing) if exist is not None
+        ]
         raise ValueError(
-            f'{name1} and {name2} cannot be specified simultaneously.'
+            'Was expecting only one of %s, got %s.' % (list(names), list(bad))
         )
 
 
