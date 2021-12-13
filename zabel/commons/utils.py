@@ -115,7 +115,7 @@ def api_call(function: FuncT) -> FuncT:
         except ApiError:
             raise
         except Exception as err:
-            raise ApiError(err) from None
+            raise ApiError(err) from err
 
     return _inner  # type: ignore
 
