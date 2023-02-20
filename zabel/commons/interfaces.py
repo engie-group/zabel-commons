@@ -378,6 +378,8 @@ class BaseService(Image):
             self.host = 'localhost'
 
         # pylint: disable=attribute-defined-outside-init
+        self.request = request
+        # pylint: disable=attribute-defined-outside-init
         self.app = Bottle()
 
         for name in dir(self):
