@@ -8,7 +8,7 @@ interfaces, exceptions, and helpers that are used throughout the platform.
 It is not typically installed as a standalone package but comes in as a
 dependency from other packages.
 
-If you want to develop a package that offer new _elements_ for Zabel, or if
+If you want to develop a package that offers new _elements_ for Zabel, or if
 you want to create an application that will be deployed using **zabel-fabric**,
 you will probably have to add this package as a dependency.
 
@@ -26,7 +26,7 @@ dependencies.
 ## License
 
 ```text
-Copyright (c) 2019-2020 Martin Lafaix (martin.lafaix@external.engie.com) and others
+Copyright (c) 2019-2023 Martin Lafaix (martin.lafaix@external.engie.com) and others
 
 This program and the accompanying materials are made
 available under the terms of the Eclipse Public License 2.0

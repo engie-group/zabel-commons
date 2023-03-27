@@ -265,6 +265,7 @@ class BaseService(Image):
     | Method name               | Default implementation? |
     | ------------------------- | ----------------------- |
     | #ensure_authn()           | No                      |
+    | #ensure_authz()           | No                      |
     | #run()                    | Yes                     |
 
     Unimplemented features will raise a _NotImplementedError_ exception.
@@ -328,12 +329,51 @@ class BaseService(Image):
         # pylint: disable=attribute-defined-outside-init
         self._platform = value
 
-    def ensure_authn(self):
-        """..."""
+    def ensure_authn(self) -> str:
+        """Ensure the incoming request is authenticated.
+
+        This method is abstract and should be implemented by the
+        concrete service class.
+
+        # Returned value
+
+        A string, the subject identity.
+
+        # Raised exceptions
+
+        Raises a _ValueError_ exception if the incoming request is not
+        authenticated.  The ValueError argument is expected to be a
+        _status_ object with an `Unauthorized` reason.
+        """
+        raise NotImplementedError
+
+    def ensure_authz(self, sub) -> None:
+        """Ensure the incoming request is authorized.
+
+        This method is abstract and should be implemented by the
+        concrete  service class.
+
+        # Required parameters
+
+        - sub: a string, the subject identity
+
+        # Returned value
+
+        None.
+
+        # Raised exception
+
+        Raises a _ValueError_ exception if the subject is not allowed
+        to perform the operation.  The ValueError argument is expected
+        to be a _status_ object with a `Forbidden` reason.
+        """
         raise NotImplementedError
 
     def run(self, *args):
         """Start a bottle app for instance.
+
+        Routes that requires RBAC will call #ensure_authn()
+        and #ensure_authz().
 
         # Optional parameters
 
@@ -353,7 +393,7 @@ class BaseService(Image):
                     response.headers[header] = value
                 if rbac:
                     try:
-                        self.ensure_authn()
+                        self.ensure_authz(self.ensure_authn())
                     except ValueError as err:
                         resp = err.args[0]
                         response.status = resp['code']
