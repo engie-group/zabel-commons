@@ -25,14 +25,16 @@ pages:
       - zabel.commons.sessions: commons/sessions.md
       - zabel.commons.utils: commons/utils.md
 
-sort: name
 theme:
-  name: 'material'
+  name: material
+  features:
+    - content.code.copy
+
 markdown_extensions:
   - admonition
   - codehilite
+  - smarty
   - toc:
       permalink: true
-  - smarty
 
 headers: markdown
