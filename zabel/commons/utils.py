@@ -143,7 +143,7 @@ def xml_to_dict(xml: Any) -> Dict[str, Any]:
     !!! important
         There should be no `'element text'` tag in the XML document.
     """
-    dct = {xml.tag: [xml_to_dict(x) for x in xml.getchildren()]}
+    dct = {xml.tag: [xml_to_dict(x) for x in list(xml)]}
     dct.update(('@%s' % key, val) for key, val in xml.attrib.items())
     dct['element text'] = xml.text
     return dct
