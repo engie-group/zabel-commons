@@ -89,6 +89,8 @@ def api_call(function: FuncT) -> FuncT:
     If `function` does not return a _Response_ object, its returned
     value is passed unchanged.
 
+    _requests.RequestException_ are wrapped in an _ApiError_ exception.
+
     _ApiError_ and _ValueError_ are not nested, but other exceptions
     raised by `function` will be wrapped in an _ApiError_ exception.
 
@@ -110,12 +112,14 @@ def api_call(function: FuncT) -> FuncT:
                     return None if response.text == '' else response.json()
                 raise ApiError(response.text)
             return response
+        except requests.exceptions.RequestException as err:
+            raise ApiError(f'{err.__class__.__name__}: {err}') from err
         except ValueError:
             raise
         except ApiError:
             raise
         except Exception as err:
-            raise ApiError(err) from err
+            raise ApiError(f'{err.__class__.__name__}: {err}') from err
 
     return _inner  # type: ignore
 
