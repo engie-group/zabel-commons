@@ -68,6 +68,7 @@ __all__ = [
     'ensure_noneornonemptystring',
     'ensure_onlyone',
     'ensure_in',
+    'BearerAuth',
 ]
 
 
@@ -426,3 +427,19 @@ def ensure_in(name: str, values: Iterable[str]) -> None:
             '%s not an allowed value, expecting one of %s.'
             % (val, ', '.join(values))
         )
+
+class BearerAuth(requests.auth.AuthBase):
+    """A Bearer handler class for requests."""
+
+    def __init__(self, pat: str):
+        self.pat = pat
+
+    def __eq__(self, other):
+        return self.pat == getattr(other, 'pat', None)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __call__(self, r):
+        r.headers['Authorization'] = f'Bearer {self.pat}'
+        return r
