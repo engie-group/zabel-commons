@@ -428,6 +428,7 @@ def ensure_in(name: str, values: Iterable[str]) -> None:
             % (val, ', '.join(values))
         )
 
+
 class BearerAuth(requests.auth.AuthBase):
     """A Bearer handler class for requests."""
 

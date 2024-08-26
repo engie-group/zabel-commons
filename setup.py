@@ -22,7 +22,7 @@ setup(
     author_email='martin.lafaix@external.engie.com',
     license='Eclipse Public License 2.0',
     packages=find_namespace_packages(include=['zabel.*']),
-    install_requires=['requests>=2.31'],
+    install_requires=['requests>=2.32'],
     extras_require={'bottle': ['bottle>=0.12.25'], 'all': ['bottle>=0.12.25']},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
