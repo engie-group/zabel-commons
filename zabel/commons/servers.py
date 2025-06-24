@@ -16,7 +16,7 @@ It also provides some commonly-used references, `DEFAULT_HEADERS` and
 
 # Decorators
 
-#entrypoint marks functions as entrypoints.
+#entrypoint marks functions as entry points.
 """
 
 from typing import Any, Dict, List, Optional, Union
@@ -64,9 +64,9 @@ def make_status(
     - reason: a non-empty string (must exist in `REASON_STATUS`)
     - message: a string
 
-    # Optional parameters:
+    # Optional parameters
 
-    - details: a dictinnary or None (None by default)
+    - details: a dictionary or None (None by default)
 
     # Returned value
 
@@ -132,7 +132,7 @@ def entrypoint(
     methods: Optional[List[str]] = None,
     rbac: bool = True,
 ):
-    """Decorate a function so that it is exposed as an entrypoint.
+    """Decorate a function so that it is exposed as an entry point.
 
     If the function it decorates does not have a 'standard' name,
     or if its name does not start with a 'standard' prefix, `methods`
@@ -176,7 +176,7 @@ def entrypoint(
 
     The decorated functions are otherwise unmodified.
 
-    There can be as many entrypoint decorators as required for a
+    There can be as many entry point decorators as required for a
     function.
 
     # Required parameters
@@ -191,7 +191,7 @@ def entrypoint(
     # Raised exceptions
 
     A _ValueError_ exception is raised if the wrapped function does not
-    have a standard entrypoint name and `methods` is not specified.
+    have a standard entry point name and `methods` is not specified.
 
     A _ValueError_ exception is raised if `methods` is specified and
     contains unexpected values (must be a standard HTTP verb).

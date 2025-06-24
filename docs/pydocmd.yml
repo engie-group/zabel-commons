@@ -1,5 +1,7 @@
 site_name: Zabel Commons
 
+sort: name
+
 generate:
   - commons.md:
     - zabel.commons

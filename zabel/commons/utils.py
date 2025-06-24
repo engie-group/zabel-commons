@@ -188,8 +188,8 @@ def patch(
 
     # Required parameters
 
-    - `destination`: a dictionary
-    - `changes`: a dictionary
+    - destination: a dictionary
+    - changes: a dictionary
 
     Overwrites entries in `destination` with values in `changes`.  In
     other words, `changes` is a sparse dictionary, and its entries will
@@ -229,10 +229,6 @@ def add_if_specified(
     - dct: a dictionary
     - key: a string
     - val: anything
-
-    # Returned value
-
-    None.
     """
     if val is not None:
         dct[key] = val
@@ -265,7 +261,7 @@ def _isnoneorinstance(
 ) -> bool:
     """Return True if val is either None or an instance of class typ.
 
-    `typ` can be a type or a tupple of types.
+    `typ` can be a type or a tuple of types.
     """
     return val is None or isinstance(val, typ)
 
@@ -317,13 +313,13 @@ def ensure_instance(name: str, typ: Union[type, Tuple[type, ...]]) -> None:
 
     val = _getlocal(inspect.currentframe(), name)
     if not isinstance(val, typ):
-        raise ValueError('%s must be of type %s.' % (name, _describe(typ)))
+        raise ValueError(f'"{name}" must be of type {_describe(typ)}.')
 
 
 def ensure_noneorinstance(
     name: str, typ: Union[type, Tuple[type, ...]]
 ) -> None:
-    """Ensure name is either None or of classe typ.
+    """Ensure name is either None or of class typ.
 
     # Required parameters
 
@@ -339,7 +335,7 @@ def ensure_noneorinstance(
     val = _getlocal(inspect.currentframe(), name)
     if not _isnoneorinstance(val, typ):
         raise ValueError(
-            '%s must be either None or of type %s.' % (name, _describe(typ))
+            f'"{name}" must be either None or of type {_describe(typ)}.'
         )
 
 
@@ -356,11 +352,11 @@ def ensure_nonemptystring(name: str) -> None:
     """
     # we have to check parameter validity, but a recursive call won't do
     if not _isnonemptystring(name):
-        raise ValueError('Parameter \'name\' must be a string.')
+        raise ValueError('Parameter "name" must be a string.')
 
     val = _getlocal(inspect.currentframe(), name)
     if not _isnonemptystring(val):
-        raise ValueError(f'{name} must be a non-empty string.')
+        raise ValueError(f'"{name}" must be a non-empty string.')
 
 
 def ensure_noneornonemptystring(name: str) -> None:
@@ -378,7 +374,7 @@ def ensure_noneornonemptystring(name: str) -> None:
 
     val = _getlocal(inspect.currentframe(), name)
     if not _isnoneornonemptystring(val):
-        raise ValueError(f'{name} must be a non-empty string if specified.')
+        raise ValueError(f'"{name}" must be a non-empty string if specified.')
 
 
 def ensure_onlyone(*names: str) -> None:
@@ -402,7 +398,8 @@ def ensure_onlyone(*names: str) -> None:
             name for name, exist in zip(names, existing) if exist is not None
         ]
         raise ValueError(
-            'Was expecting only one of %s, got %s.' % (list(names), list(bad))
+            'Was expecting only one of "%s", got "%s".'
+            % ('", "'.join(names), '", "'.join(bad))
         )
 
 
@@ -424,8 +421,8 @@ def ensure_in(name: str, values: Iterable[str]) -> None:
 
     if val not in values:
         raise ValueError(
-            '%s not an allowed value, expecting one of %s.'
-            % (val, ', '.join(values))
+            f'"{val}" not an allowed value, expecting one of "%s".'
+            % '", "'.join(values)
         )
 
 

@@ -18,22 +18,20 @@ This module provides nine interfaces that are used to manage services:
 | #Image                    | Defines methods all images must
                               implement.                               |
 | #Manager                  | A simple marker for manager classes.     |
-| #ManagedProjectDefinition | An abstract class that represents a
-                              minimal managed project definition.      |
-| #ManagedAccount           | An abstract class that represents a
-                              minimal managed account.                 |
+| #ManagedDefinition        | A simple base class for managed
+                              definitions.                             |
 | #BaseService              | Defines a handful of methods all
                               services must implement.                 |
 | #ManagedService           | Extends #BaseService and is implemented
-                              by the abstract classes wrapping each
+                              by the abstract classes wrapping<br/> each
                               tool.  It defines the methods all managed
-                              services must implement (those relative
-                              to being an #BaseService and those
-                              relative to having members and pushing
-                              and pulling projects).                   |
+                              services must implement (those<br/>
+                              relative to being an #BaseService and
+                              those relative to having members and<br/>
+                              pushing and pulling projects).           |
 | #Utility                  | Extends #BaseService and is implemented
-                              by the shared services (services that are
-                              used by multiple platforms or realms)    |
+                              by the shared services (services that<br/>
+                              are used by multiple platforms or realms)|
 """
 
 
@@ -43,16 +41,6 @@ import json
 
 from .exceptions import ApiError
 from .servers import entrypoint, DEFAULT_HEADERS
-
-
-########################################################################
-## Constants
-
-KEY = r'[a-z0-9A-Z-_.]+'
-VALUE = r'[a-z0-9A-Z-_.]+'
-EQUAL_EXPR = rf'^({KEY})\s*([=!]?=)\s*({VALUE})$'
-SET_EXPR = rf'^({KEY})\s+(in|notin)\s+\(({VALUE}(\s*,\s*{VALUE})*)\)$'
-EXISTS_EXPR = rf'^{KEY}$'
 
 
 ########################################################################
@@ -121,20 +109,14 @@ class Manager:
         self._platform = value
 
 
-class ManagedProjectDefinition(Dict[str, Any]):
-    """Managed Project Definition.
+class ManagedDefinition(Dict[str, Any]):
+    """A base class for managed definitions.
 
-    Provides a simple wrapper for _managed projects definitions_.
-
-    Managed projects definitions are JSON files (handled as dictionaries
-    in Python).
-
-    The _ManagedProjectDefinition_ helper class inherits from `dict`,
-    and provides a single class method, `from_dict()`.
+    Managed definitions are handled as dictionaries in Python.
     """
 
     @classmethod
-    def from_dict(cls, source: Dict[str, Any]) -> 'ManagedProjectDefinition':
+    def from_dict(cls, source: Dict[str, Any]) -> 'ManagedDefinition':
         """Convert a dictionary to a _ManagedProjectDefinition_ object.
 
         # Required parameters
@@ -143,40 +125,11 @@ class ManagedProjectDefinition(Dict[str, Any]):
 
         Should a platform implementation provide its own wrapper, it
         will most likely have to override this class method.
-        """
-        definition = cls()
-        for key in source:
-            definition[key] = source[key]
-        return definition
 
+        # Returned value
 
-class ManagedAccount(Dict[str, Any]):
-    """Managed Account.
-
-    Provides a simple wrapper for _managed accounts_.
-
-    Managed accounts are object describing realm accounts (users,
-    technical users, readers, admins, ...).
-
-    Realm implementations may decide to provide their own wrapper, to
-    help manage managed accounts.
-
-    A managed account is attached to a realm.
-
-    The _ManagedAccount_ helper class inherits from dict, and provides a
-    single class method, `from_dict()`.
-    """
-
-    @classmethod
-    def from_dict(cls, source: Dict[str, Any]) -> 'ManagedAccount':
-        """Convert a dictionary to a _ManagedAccount_ object.
-
-        # Required parameters
-
-        - source: a dictionary
-
-        Should a platform implementation provide its own wrapper, it
-        will most likely have to override this class method.
+        An instance of the class, with the content of the
+        `source` dictionary.
         """
         definition = cls()
         for key in source:
@@ -197,14 +150,14 @@ class BaseService(Image):
 
     - accessors for name and platform
 
-    _BaseService_ instances are expected to expose some entrypoints and
+    _BaseService_ instances are expected to expose some entry points and
     make them available through a web server.
 
     This class provides a default implementation of such a server and
-    exposes the defined entrypoints.
+    exposes the defined entry points.
 
-    Its `run()` that takes any number of string arguments.  It starts a
-    web server on the host and port provided via `--host` and `--port`
+    Its `run()` method takes any number of string arguments.  It starts
+    a web server on the host and port provided via `--host` and `--port`
     arguments, or, if not specified, via the `host` and `port` instance
     attributes, or `localhost` on port 8080 if none of the above are
     available:
@@ -224,8 +177,8 @@ class BaseService(Image):
     foo.run()
     ```
 
-    The exposed entrypoints are those defined on all instance members.
-    The entrypoint definitions are inherited (i.e., you don't have to
+    The exposed entry points are those defined on all instance members.
+    The entry point definitions are inherited (i.e., you don't have to
     redefine them if they are already defined).
 
     ```python
@@ -241,12 +194,12 @@ class BaseService(Image):
     FooBar().run()  # curl localhost:8080/foo/bar -> foobar.get_bar
     ```
 
-    **Note**: You can redefine the entrypoint attached to a method.
-    Simply add a new `@entrypoint` decorator to the method.  And, if
-    you want to disable the entrypoint, use `[]` as the path.
+    **Note**: You can redefine the entry point attached to a method.
+    Simply add a new `@entry point` decorator to the method.  And, if
+    you want to disable the entry point, use `[]` as the path.
 
     **Note**: The web server is implemented using Bottle.  If you prefer
-    or need to use another wsgi server, simple override the `run()`
+    or need to use another WSGI server, simple override the `run()`
     method in your class.  Your class will then have no dependency on
     Bottle.
 
@@ -357,10 +310,6 @@ class BaseService(Image):
 
         - sub: a string, the subject identity
 
-        # Returned value
-
-        None.
-
         # Raised exception
 
         Raises a _ValueError_ exception if the subject is not allowed
@@ -369,7 +318,7 @@ class BaseService(Image):
         """
         raise NotImplementedError
 
-    def run(self, *args):
+    def run(self, *args) -> Any:
         """Start a bottle app for instance.
 
         Routes that requires RBAC will call #ensure_authn()
@@ -512,7 +461,7 @@ class ManagedService(BaseService):
     def list_members(self) -> Dict[str, Any]:
         """Return the members on the service.
 
-        # Returned values
+        # Returned value
 
         A dictionary.  The keys are the canonical IDs and the values are
         the representations of a user for the service.
@@ -582,6 +531,10 @@ class ManagedService(BaseService):
         # Required parameters
 
         - project: a managed project definition name
+
+        # Returned value
+
+        A service-specific result.
         """
         raise NotImplementedError
 
@@ -592,5 +545,9 @@ class ManagedService(BaseService):
         # Required parameters
 
         - project: a managed project definition name
+
+        # Returned value
+
+        A service-specific result.
         """
         raise NotImplementedError
