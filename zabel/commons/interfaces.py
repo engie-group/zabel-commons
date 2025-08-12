@@ -310,7 +310,7 @@ class BaseService(Image):
 
         - sub: a string, the subject identity
 
-        # Raised exception
+        # Raised exceptions
 
         Raises a _ValueError_ exception if the subject is not allowed
         to perform the operation.  The ValueError argument is expected
@@ -517,7 +517,7 @@ class ManagedService(BaseService):
         It assumes the project has been previously successfully pushed
         on the service.
 
-        # Raised exception
+        # Raised exceptions
 
         Raises an exception if the managed project users are not
         successfully pushed.
