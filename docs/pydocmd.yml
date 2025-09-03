@@ -3,10 +3,12 @@ site_name: Zabel Commons
 sort: name
 
 generate:
-  - commons.md:
+  - commons/index.md:
     - zabel.commons
   - commons/exceptions.md:
     - zabel.commons.exceptions++
+  - commons/interfaces.md:
+    - zabel.commons.interfaces++
   - commons/sessions.md:
     - zabel.commons.sessions++
   - commons/utils.md:
@@ -17,12 +19,12 @@ generate:
 pages:
   - Home: index.md << ../README.md
   - API Documentation:
-    - Commons Library:
-      - Overview: commons.md
-      - zabel.commons.exceptions: commons/exceptions.md
-      - zabel.commons.servers: commons/servers.md
-      - zabel.commons.sessions: commons/sessions.md
-      - zabel.commons.utils: commons/utils.md
+    - Overview: commons/index.md
+    - Exceptions: commons/exceptions.md
+    - Interfaces: commons/interfaces.md
+    - Servers: commons/servers.md
+    - Sessions: commons/sessions.md
+    - Misc. Helpers: commons/utils.md
 
 theme:
   features:
