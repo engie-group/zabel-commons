@@ -7,6 +7,8 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
+**Deprecated module**
+
 This module provides nine interfaces that are used to manage services:
 
 | Interfaces                | Description                              |

@@ -15,7 +15,6 @@ you will probably have to add this package as a dependency.
 It provides five modules:
 
 - _zabel.commons.exceptions_
-- _zabel.commons.interfaces_
 - _zabel.commons.sessions_
 - _zabel.commons.servers_
 - _zabel.commons.utils_
@@ -26,7 +25,7 @@ dependencies.
 ## License
 
 ```text
-Copyright (c) 2019-2023 Martin Lafaix (martin.lafaix@external.engie.com) and others
+Copyright (c) 2019 Martin Lafaix (martin.lafaix@external.engie.com) and others
 
 This program and the accompanying materials are made
 available under the terms of the Eclipse Public License 2.0

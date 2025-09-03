@@ -8,15 +8,15 @@
 
 """
 This module provides a set of functions that can be useful while
-writing REST API servers.  It includes a decorator, #entrypoint, as
-well as a set of helpers: #make_status and #make_items.
+writing REST API servers.  It includes a decorator, #entrypoint(), as
+well as a set of helpers: #make_status() and #make_items().
 
 It also provides some commonly-used references, `DEFAULT_HEADERS` and
 `REASON_STATUS`.
 
-# Decorators
+## Decorators
 
-#entrypoint marks functions as entry points.
+#entrypoint() marks functions as entry points.
 """
 
 from typing import Any, Dict, List, Optional, Union
@@ -134,6 +134,25 @@ def entrypoint(
 ):
     """Decorate a function so that it is exposed as an entry point.
 
+    # Required parameters
+
+    - path: a non-empty string or a list of non-empty strings
+
+    # Optional parameters
+
+    - methods: a list of strings or None (None by default).
+    - rbac: a boolean (True by default).
+
+    # Raised exceptions
+
+    A _ValueError_ exception is raised if the wrapped function does not
+    have a standard entry point name and `methods` is not specified.
+
+    A _ValueError_ exception is raised if `methods` is specified and
+    contains unexpected values (must be a standard HTTP verb).
+
+    # Usage
+
     If the function it decorates does not have a 'standard' name,
     or if its name does not start with a 'standard' prefix, `methods`
     must be specified.
@@ -178,23 +197,6 @@ def entrypoint(
 
     There can be as many entry point decorators as required for a
     function.
-
-    # Required parameters
-
-    - path: a non-empty string or a list of non-empty strings
-
-    # Optional parameters
-
-    - methods: a list of strings or None (None by default).
-    - rbac: a boolean (True by default).
-
-    # Raised exceptions
-
-    A _ValueError_ exception is raised if the wrapped function does not
-    have a standard entry point name and `methods` is not specified.
-
-    A _ValueError_ exception is raised if `methods` is specified and
-    contains unexpected values (must be a standard HTTP verb).
     """
 
     def inner(f):

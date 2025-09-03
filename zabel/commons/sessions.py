@@ -84,7 +84,7 @@ def prepare_session(
 
     A new #PersistentSession instance.
 
-    # Sample usage
+    # Usage
 
     ```python
     from commons.sessions import prepare_session

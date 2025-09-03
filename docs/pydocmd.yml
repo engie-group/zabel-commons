@@ -11,8 +11,6 @@ generate:
     - zabel.commons.sessions++
   - commons/utils.md:
     - zabel.commons.utils++
-  - commons/interfaces.md:
-    - zabel.commons.interfaces++
   - commons/servers.md:
     - zabel.commons.servers++
 
@@ -22,19 +20,17 @@ pages:
     - Commons Library:
       - Overview: commons.md
       - zabel.commons.exceptions: commons/exceptions.md
-      - zabel.commons.interfaces: commons/interfaces.md
       - zabel.commons.servers: commons/servers.md
       - zabel.commons.sessions: commons/sessions.md
       - zabel.commons.utils: commons/utils.md
 
 theme:
-  name: material
   features:
-    - navigation.indexes # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#section-index-pages
-    - navigation.instant
-    # - navigation.tabs
-    - content.tabs.link
+    - navigation.indexes
     - content.code.copy
+    - content.tabs.link
+    # - navigation.tabs
+  name: material
   palette:
     - scheme: default
       toggle:
@@ -44,6 +40,10 @@ theme:
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode
+
+extra_css:
+  - css/extra.css
+  - css/github-links.css
 
 markdown_extensions:
   - admonition            # https://squidfunk.github.io/mkdocs-material/reference/admonitions/

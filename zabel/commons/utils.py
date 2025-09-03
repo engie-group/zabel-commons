@@ -8,31 +8,47 @@
 
 """
 This module provides a set of functions that can be useful while
-writing APIs wrappers.  It includes a decorator, #api_call, a handful
+writing APIs wrappers.  It includes a decorator, #api_call(), a handful
 of XML helpers and misc. functions, and helpers for parameters validity
 checking.
 
 It depends on the public **requests** library.
 
-# Decorators
+## Decorators
 
-#api_call wraps functions that call a remote API.
+#api_call() wraps functions that call a remote API.
 
-#api_client wraps methods of a class with the #api_call decorator.
+#api_client() wraps methods of a class with the #api_call() decorator.
 
-# XML Helpers
+## XML Helpers
 
 #dict_to_xml() and #xml_to_dict().
 
-# Parameters Validity Checkers
+## Parameters Validity Checkers
 
 #ensure_instance(), #ensure_noneorinstance(), #ensure_nonemptystring(),
 #ensure_noneornonemptystring(), #ensure_onlyone(), and #ensure_in().
 
-# Misc. Helpers
+## Misc. Helpers
 
 #add_if_specified(), #patch(), and #join_url().
 """
+
+__all__ = [
+    'api_call',
+    'xml_to_dict',
+    'dict_to_xml',
+    'add_if_specified',
+    'join_url',
+    'patch',
+    'ensure_instance',
+    'ensure_noneorinstance',
+    'ensure_nonemptystring',
+    'ensure_noneornonemptystring',
+    'ensure_onlyone',
+    'ensure_in',
+    'BearerAuth',
+]
 
 from typing import (
     Any,
@@ -54,22 +70,6 @@ import inspect
 import requests
 
 from .exceptions import ApiError
-
-__all__ = [
-    'api_call',
-    'xml_to_dict',
-    'dict_to_xml',
-    'add_if_specified',
-    'join_url',
-    'patch',
-    'ensure_instance',
-    'ensure_noneorinstance',
-    'ensure_nonemptystring',
-    'ensure_noneornonemptystring',
-    'ensure_onlyone',
-    'ensure_in',
-    'BearerAuth',
-]
 
 
 ########################################################################
