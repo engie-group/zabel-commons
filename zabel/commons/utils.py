@@ -7,46 +7,104 @@
 # SPDX-License-Identifier: EPL-2.0
 
 """
-This module provides a set of functions that can be useful while
-writing APIs wrappers.  It includes a decorator, #api_call(), a handful
-of XML helpers and misc. functions, and helpers for parameters validity
-checking.
+This module provides a set of functions that can be useful while writing
+APIs wrappers.  It includes decorators, a handful of XML helpers and
+misc. functions, as well as helpers for parameters validity checking.
 
 It depends on the public **requests** library.
 
 ## Decorators
 
-#api_call() wraps functions that call a remote API.
+| Decorator                      | Description                   {.xl}
+| ------------------------------ | -----------------------------------
+| #api_call()                    | Wraps functions that call a remote
+                                   API.
+| #api_client()                  | Wraps methods of a class with the
+                                   #api_call() decorator.
 
-#api_client() wraps methods of a class with the #api_call() decorator.
+Example:
+
+```python
+@api_call
+def get_user(user_id):
+    return requests.get('https://example.com/api/users/%s' % user_id)
+
+get_user(42)  # returns the JSON content of the response if status code is 2xx
+get_user(-1)  # raises ApiError if status code is not 2xx
+```
+
+## Dictionaries Helpers
+
+| Helper function                | Description                   {.xl}
+| ------------------------------ | -----------------------------------
+| #add_if_specified()            | Add a key:value pair to a dictionary if value is not None.
+| #patch()                       | Deep-merge two dictionaries.
+
+Example:
+
+```python
+pet_name = 'bob'
+color = None
+
+params = {}
+add_if_specified(params, 'name', pet_name)
+add_if_specified(params, 'color', color)
+
+assert params == {'name': 'bob'}
+```
+
+## Parameters Validators
+
+| Validator                      | Description                   {.xl}
+| ------------------------------ | -----------------------------------
+| #ensure_in()                   | Ensure value is in a list of accepted values.
+| #ensure_instance()             | Ensure value is an instance of a given class.
+| #ensure_nonemptystring()       | Ensure value is a non-empty string.
+| #ensure_noneorinstance()       | Ensure value is either None or an instance of a given class.
+| #ensure_noneornonemptystring() | Ensure value is either None or a non-empty string.
+| #ensure_onlyone()              | Ensure one and only one value in a list is not None.
+
+Example:
+
+```python
+def foo(a, b=None, c=None):
+    ensure_in('a', ['dog', 'cat'])
+    ensure_onlyone('b', 'c')
+
+foo('pig', b=1)       # raises ValueError
+foo('dog', b=1, c=2)  # raises ValueError
+foo('cat', b=1)       # ok
+```
+
+## Requests Helpers
+
+| Helper function                | Description                   {.xl}
+| ------------------------------ | -----------------------------------
+| #BearerAuth                    | A Bearer handler for requests.
+| #join_url()                    | Join two parts to make an URL.
 
 ## XML Helpers
 
-#dict_to_xml() and #xml_to_dict().
-
-## Parameters Validity Checkers
-
-#ensure_instance(), #ensure_noneorinstance(), #ensure_nonemptystring(),
-#ensure_noneornonemptystring(), #ensure_onlyone(), and #ensure_in().
-
-## Misc. Helpers
-
-#add_if_specified(), #patch(), and #join_url().
+| Helper function                | Description                   {.xl}
+| ------------------------------ | -----------------------------------
+| #dict_to_xml()                 | Convert a dictionary to an XML string.
+| #xml_to_dict()                 | Convert an XML document to a dictionary.
 """
 
 __all__ = [
     'api_call',
+    'api_client',
     'xml_to_dict',
     'dict_to_xml',
     'add_if_specified',
     'join_url',
     'patch',
+    'ensure_in',
     'ensure_instance',
-    'ensure_noneorinstance',
     'ensure_nonemptystring',
+    'ensure_noneorinstance',
     'ensure_noneornonemptystring',
     'ensure_onlyone',
-    'ensure_in',
     'BearerAuth',
 ]
 
@@ -90,12 +148,22 @@ def api_call(function: FuncT) -> FuncT:
     If `function` does not return a _Response_ object, its returned
     value is passed unchanged.
 
+    # Required parameters
+
+    - function: a function
+
+    # Returned value
+
+    The decorated function.
+
+    # Raised exceptions
+
     _requests.RequestException_ are wrapped in an _ApiError_ exception.
 
     _ApiError_ and _ValueError_ are not nested, but other exceptions
     raised by `function` will be wrapped in an _ApiError_ exception.
 
-    # Sample use
+    # Usage
 
     ```python
     @api_call
@@ -125,10 +193,10 @@ def api_call(function: FuncT) -> FuncT:
     return _inner  # type: ignore
 
 
-def api_client(cls):
+def api_client(cls: Any) -> Any:
     """Decorate class methods with api_call.
 
-    Does not wraps class methods and static methods.
+    Does not wrap class methods and static methods.
     """
     for name, val in vars(cls).items():
         if callable(val):
@@ -178,7 +246,7 @@ def dict_to_xml(dct: Mapping[str, Any]) -> str:
 ########################################################################
 ########################################################################
 
-# misc. helpers
+# Misc. helpers
 
 
 def patch(
@@ -186,19 +254,10 @@ def patch(
 ) -> Dict[str, Any]:
     """Deep-merge two dictionaries.
 
-    # Required parameters
-
-    - destination: a dictionary
-    - changes: a dictionary
-
     Overwrites entries in `destination` with values in `changes`.  In
     other words, `changes` is a sparse dictionary, and its entries will
     overwrite existing ones in `destination`.  Entries in `destination`
     that are not in `changes` will be preserved as-is.
-
-    # Returned value
-
-    The patched dictionary.
 
     ```python
     >>> a = {'first': {'all_rows': {'pass': 'dog', 'number': '1'}}}
@@ -207,6 +266,15 @@ def patch(
     >>>                                        'fail': 'cat',
     >>>                                        'number': '5'}}}
     ```
+
+    # Required parameters
+
+    - destination: a dictionary
+    - changes: a dictionary
+
+    # Returned value
+
+    The `destination` dictionary, patched.
     """
     for key, value in changes.items():
         if isinstance(value, dict):
@@ -246,6 +314,15 @@ def join_url(lhs: str, rhs: str) -> str:
     >>> urljoin('https://example.com/foo', 'bar')
     'https://example.com/bar'
     ```
+
+    # Required parameters
+
+    - lhs: a string, the left-hand side of the URL
+    - rhs: a string, the right-hand side of the URL
+
+    # Returned value
+
+    The joined URL.
     """
     return lhs.rstrip('/') + '/' + rhs.lstrip('/')
 
@@ -427,7 +504,19 @@ def ensure_in(name: str, values: Iterable[str]) -> None:
 
 
 class BearerAuth(requests.auth.AuthBase):
-    """A Bearer handler class for requests."""
+    """A bearer handler class for requests.
+
+    Can be used as the `auth` parameter of **requests** methods so that
+    you do not have to add the `'Authorization'` header manually.
+
+    # Usage
+
+    ```python
+    bearer = BearerAuth('mytoken')
+
+    requests.get('https://example.com/api', auth=bearer)
+    ```
+    """
 
     def __init__(self, pat: str):
         self.pat = pat

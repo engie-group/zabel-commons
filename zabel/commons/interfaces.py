@@ -14,7 +14,7 @@ This module provides two interfaces that are used to manage API services:
 
 | Interfaces                | Description                              |
 | ------------------------- | ---------------------------------------- |
-| #ApiService               | A marker for API services.               |
+| #ApiServer                | A marker for API servers.                |
 | #Image                    | A marker for images (containers-like API
                               services).                               |
 """
@@ -24,8 +24,8 @@ This module provides two interfaces that are used to manage API services:
 ## Interfaces
 
 
-class ApiService:
-    """An API service marker."""
+class ApiServer:
+    """An API server marker."""
 
 
 class Image:

@@ -8,27 +8,44 @@
 
 """
 This module provides a set of functions that can be useful while
-writing REST API servers.  It includes a decorator, #entrypoint(), as
-well as a set of helpers: #make_status() and #make_items().
+writing REST API servers.  It includes an abstract class, #ApiApp, a
+decorator, #entrypoint(), as well as a set of helpers: #make_status()
+and #make_items().
 
 It also provides some commonly-used references, `DEFAULT_HEADERS` and
 `REASON_STATUS`.
 
-## Abstract class
+## Abstract Class
 
 The #ApiApp class is an abstract class that can be used as a
-base class for API services.
+base class for API servers.
 
 ## Decorators
 
-#entrypoint() marks functions as entry points.
+| Decorator    {.s} | Description                      |
+| ----------------- | -------------------------------- |
+| #entrypoint()     | Marks functions as entry points. |
+
+## Misc. Helpers
+
+| Function     {.s} | Description                      |
+| ----------------- | -------------------------------- |
+| #make_status()    | Returns a status object.         |
+| #make_items()     | Returns a list of objects.       |
+
+## References
+
+| Name         {.s} | Description                      |
+| ----------------- | -------------------------------- |
+| `DEFAULT_HEADERS` | Common security headers.         |
+| `REASON_STATUS`   | Common reason-to-status mapping. |
 """
 
 from typing import Any, Dict, List, Optional, Union
 
 import json
 
-from .interfaces import ApiService
+from .interfaces import ApiServer
 
 
 ########################################################################
@@ -81,14 +98,31 @@ def make_status(
 
     A _status_.  A status is a dictionary with the following entries:
 
-    - kind: a string (`'Status'`)
     - apiVersion: a string (`'v1'`)
+    - kind: a string (`'Status'`)
     - metadata: an empty dictionary
     - status: a string (either `'Success'` or `'Failure'`)
     - message: a string (`message`)
     - reason: a string (`reason`)
     - details: a dictionary or None (`details`)
     - code: an integer (derived from `reason`)
+
+    # Usage
+
+    ```python
+    make_status('NotFound', 'The requested resource does not exist')
+
+    # {
+    #   'apiVersion': 'v1',
+    #   'kind': 'Status',
+    #   'metadata': {},
+    #   'status': 'Failure',
+    #   'message': 'The requested resource does not exist',
+    #   'reason': 'NotFound',
+    #   'details': None,
+    #   'code': 404
+    # }
+    ```
     """
     code = REASON_STATUS[reason]
     return {
@@ -115,9 +149,27 @@ def make_items(kind: str, what: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     A _list_.  A list is a dictionary with the following entries:
 
-    - kind: a string
     - apiVersion: a string (`'v1'`)
+    - kind: a string (`'{kind}List'`)
     - items: a list of dictionaries (`what`)
+
+    # Usage
+
+    ```python
+    make_items(
+      'Foo',
+      [{'metadata': {'name': 'foo'}}, {'metadata': {'name': 'bar'}}]
+    )
+
+    # {
+    #   'apiVersion': 'v1',
+    #   'kind': 'FooList',
+    #   'items': [
+    #     {'metadata': {'name': 'foo'}},
+    #     {'metadata': {'name': 'bar'}}
+    #   ]
+    # }
+    ```
     """
     return {'apiVersion': 'v1', 'kind': f'{kind}List', 'items': what}
 
@@ -145,7 +197,8 @@ def entrypoint(
 
     # Required parameters
 
-    - path: a non-empty string or a list of non-empty strings
+    - path: a non-empty string or a possibly empty list of non-empty
+      strings
 
     # Optional parameters
 
@@ -194,7 +247,7 @@ def entrypoint(
     'Standard' prefixes are standard names followed by `'_'`, such
     as `'list_foo'`.
 
-    Decorated functions will have an `entrypoint routes` attribute
+    Decorated functions will have an `'entrypoint routes'` attribute
     added, which will contain a list of a dictionary with the following
     entries:
 
@@ -217,7 +270,7 @@ def entrypoint(
             _methods = None
         if _methods is None and methods is None:
             raise ValueError(
-                f"Nonstandard entrypoint '{f.__name__}', 'methods' parameter required."
+                f'Nonstandard entrypoint "{f.__name__}", "methods" parameter required.'
             )
         setattr(
             f,
@@ -240,7 +293,7 @@ def _read_server_params(args, host, port):
     return host, port
 
 
-class ApiApp(ApiService):
+class ApiApp(ApiServer):
     """Abstract API Service Wrapper.
 
     Provides a minimal set of features an API app must provide.
@@ -251,13 +304,21 @@ class ApiApp(ApiService):
     This class provides a default implementation of such a server and
     exposes the defined entry points.
 
-    Its `run()` method takes any number of string arguments.  It starts
+    # Declared Methods
+
+    | Method name               | Default implementation? |
+    | ------------------------- | ----------------------- |
+    | #ensure_authn()           | No                      |
+    | #ensure_authz()           | No                      |
+    | #run()                    | Yes                     |
+
+    Unimplemented features raise a _NotImplementedError_ exception.
+
+    The `run()` method takes any number of string arguments.  It starts
     a web server on the host and port provided via `--host` and `--port`
     arguments, or, if not specified, via the `host` and `port` instance
     attributes, or `localhost` on port 8080 if none of the above are
     available:
-
-    ## Usage
 
     ```python
     # Explicit host and port
@@ -278,40 +339,51 @@ class ApiApp(ApiService):
     The entry point definitions are inherited (i.e., you don't have to
     redefine them if they are already defined).
 
+    !!! tip
+        The default web server is implemented using **Bottle**.  It
+        may not be very efficient.  If you prefer or need to use another
+        WSGI server, simple override the `run()` method in your class.
+        Your class will then have no dependency on **Bottle**.
+
+    # Example
+
     ```python
-    class Foo(BasicService):
+    from zabel.commons.servers import ApiApp, entrypoint
+
+    class Foo(ApiApp):
         @entrypoint('/foo/bar')
         def get_bar():
-            ...
+            return 'foo.get_bar'
 
     class FooBar(Foo):
         def get_bar():
             return 'foobar.get_bar'
 
-    FooBar().run()  # curl localhost:8080/foo/bar -> foobar.get_bar
+    FooBar().run()  # curl localhost:8080/foo/bar -> 'foobar.get_bar'
     ```
 
-    **Note**: You can redefine the entry point attached to a method.
-    Simply add a new `@entry point` decorator to the method.  And, if
-    you want to disable the entry point, use `[]` as the path.
+    You can redefine the entry point attached to a method.  Simply add a
+    new `@entry point` decorator to the method.  And, if you want to
+    disable the entry point, use `[]` as the path.
 
-    **Note**: The web server is implemented using Bottle.  If you prefer
-    or need to use another WSGI server, simple override the `run()`
-    method in your class.  Your class will then have no dependency on
-    Bottle.
+    ```python
+    class BarBaz(Foo):
+        @entrypoint([])  # Disable the entry point
+        def get_bar():
+            return 'barbaz.get_bar'
 
-    # Declared Methods
+    BarBaz().run()  # curl localhost:8080/foo/bar -> 404
+    ```
 
-    | Method name               | Default implementation? |
-    | ------------------------- | ----------------------- |
-    | #ensure_authn()           | No                      |
-    | #ensure_authz()           | No                      |
-    | #run()                    | Yes                     |
+    ```python
+    class BarFoo(Foo):
+        @entrypoint('/bar/foo')  # New entry point
+        def get_bar():
+            return 'barfoo.get_bar'
 
-    Unimplemented features will raise a _NotImplementedError_ exception.
-
-    Some features provide default implementation, but those default
-    implementations may not be very efficient.
+    BarFoo().run()  # curl localhost:8080/foo/bar -> 404
+    BarFoo().run()  # curl localhost:8080/bar/foo -> 'barfoo.get_bar'
+    ```
     """
 
     def ensure_authn(self) -> str:

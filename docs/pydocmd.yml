@@ -24,7 +24,7 @@ pages:
     - Interfaces: commons/interfaces.md
     - Servers: commons/servers.md
     - Sessions: commons/sessions.md
-    - Misc. Helpers: commons/utils.md
+    - Utils: commons/utils.md
 
 theme:
   features:
@@ -43,6 +43,8 @@ theme:
         icon: material/toggle-switch
         name: Switch to light mode
 
+extra_javascript:
+  - js/github-links.js
 extra_css:
   - css/extra.css
   - css/github-links.css
