@@ -37,7 +37,7 @@ get_user(-1)  # raises ApiError if status code is not 2xx
 
 | Helper function                | Description                   {.xl}
 | ------------------------------ | -----------------------------------
-| #add_if_specified()            | Add a key:value pair to a dictionary if value is not None.
+| #add_if_notnone()              | Add a key:value pair to a dictionary if value is not None.
 | #patch()                       | Deep-merge two dictionaries.
 
 Example:
@@ -47,8 +47,8 @@ pet_name = 'bob'
 color = None
 
 params = {}
-add_if_specified(params, 'name', pet_name)
-add_if_specified(params, 'color', color)
+add_if_notnone(params, 'name', pet_name)
+add_if_notnone(params, 'color', color)
 
 assert params == {'name': 'bob'}
 ```
@@ -96,6 +96,7 @@ __all__ = [
     'api_client',
     'xml_to_dict',
     'dict_to_xml',
+    'add_if_notnone',
     'add_if_specified',
     'join_url',
     'patch',
@@ -287,9 +288,7 @@ def patch(
     return destination
 
 
-def add_if_specified(
-    dct: MutableMapping[str, Any], key: str, val: Any
-) -> None:
+def add_if_notnone(dct: MutableMapping[str, Any], key: str, val: Any) -> None:
     """Add a key:value pair to dictionary if value is not None.
 
     # Required parameters
@@ -300,6 +299,9 @@ def add_if_specified(
     """
     if val is not None:
         dct[key] = val
+
+
+add_if_specified = add_if_notnone
 
 
 def join_url(lhs: str, rhs: str) -> str:
