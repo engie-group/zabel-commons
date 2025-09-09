@@ -17,8 +17,9 @@ It also provides some commonly-used references, `DEFAULT_HEADERS` and
 
 ## Abstract Class
 
-The #ApiApp class is an abstract class that can be used as a
-base class for API servers.
+| Class        {.s} | Description                      |
+| ----------------- | -------------------------------- |
+| #ApiApp           | An abstract API server wrapper.  |
 
 ## Decorators
 
@@ -41,7 +42,7 @@ base class for API servers.
 | `REASON_STATUS`   | Common reason-to-status mapping. |
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import json
 
@@ -304,9 +305,14 @@ class ApiApp(ApiServer):
     This class provides a default implementation of such a server and
     exposes the defined entry points.
 
+    It also provides two abstract methods to ensure that incoming
+    requests are authenticated and authorized.  You do not have to
+    implement authentication and authorization if your service does not
+    require it.
+
     # Declared Methods
 
-    | Method name               | Default implementation? |
+    | Method name          {.s} | Default implementation? |
     | ------------------------- | ----------------------- |
     | #ensure_authn()           | No                      |
     | #ensure_authz()           | No                      |
@@ -344,6 +350,9 @@ class ApiApp(ApiServer):
         may not be very efficient.  If you prefer or need to use another
         WSGI server, simple override the `run()` method in your class.
         Your class will then have no dependency on **Bottle**.
+
+        Refer to #enumerate_routes() for a way to get the list of
+        defined entry points.
 
     # Example
 
@@ -400,7 +409,7 @@ class ApiApp(ApiServer):
 
         Raises a _ValueError_ exception if the incoming request is not
         authenticated.  The ValueError argument is expected to be a
-        _status_ object with an `Unauthorized` reason.
+        _status_ object with an `'Unauthorized'` reason.
         """
         raise NotImplementedError
 
@@ -418,7 +427,7 @@ class ApiApp(ApiServer):
 
         Raises a _ValueError_ exception if the subject is not allowed
         to perform the operation.  The ValueError argument is expected
-        to be a _status_ object with a `Forbidden` reason.
+        to be a _status_ object with a `'Forbidden'` reason.
         """
         raise NotImplementedError
 
@@ -473,21 +482,85 @@ class ApiApp(ApiServer):
         # pylint: disable=attribute-defined-outside-init
         self.app = Bottle()
 
-        for name in dir(self):
-            method = getattr(self, name, None)
-            if method:
-                # The 'entrypoint routes' attr may be on a super method
-                sms = [getattr(c, name, None) for c in self.__class__.mro()]
-                eps = [getattr(m, 'entrypoint routes', None) for m in sms]
-                for route in next((routes for routes in eps if routes), []):
-                    self.app.route(
-                        path=route['path'].replace('{', '<').replace('}', '>'),
-                        method=route['methods'],
-                        callback=wrap(method, route['rbac']),
-                    )
+        for method, route in self.enumerate_routes():
+            self.app.route(
+                path=route['path'].replace('{', '<').replace('}', '>'),
+                method=route['methods'],
+                callback=wrap(method, route['rbac']),
+            )
 
         host, port = _read_server_params(args, host=self.host, port=self.port)
         try:
             self.app.run(host=host, port=port)
         except Exception as err:
             return err
+
+    def enumerate_routes(self) -> List[Tuple[Callable, Dict[str, Any]]]:
+        """Enumerate all routes defined on instance members.
+
+        You can use this method to get a list of all entry points
+        defined on the instance.  This could be handy when overriding
+        the `run()` method to use another web server than the default
+        one.
+
+        # Returned value
+
+        A list of tuples.  Each tuple contains:
+
+        - the member (a callable)
+        - the entry point definition (a dictionary with `path`,
+          `methods`, and `rbac` entries)
+
+        The list is ordered by member name.
+
+        # Usage
+
+        Assuming your web server provides a `route` method with the
+        same signature as the one provided by **Bottle**, you could
+        use this method as follows:
+
+        ```python
+        for method, route in self.enumerate_routes():
+            self.app.route(
+                path=route['path'].replace('{', '<').replace('}', '>'),
+                method=route['methods'],
+                callback=wrap(method, route['rbac']),
+            )
+        ```
+
+        Here, `wrap()` is a decorator that process the incoming
+        request, in a way similar to the one used in the default
+        `run()` method.  You will have to adjust it for your web server:
+
+        ```python
+        def wrap(handler, rbac: bool):
+            def inner(*args, **kwargs):
+                for header, value in DEFAULT_HEADERS.items():
+                    response.headers[header] = value
+                if rbac:
+                    try:
+                        self.ensure_authz(self.ensure_authn())
+                    except ValueError as err:
+                        resp = err.args[0]
+                        response.status = resp['code']
+                        return resp
+                try:
+                    result = json.dumps(handler(*args, **kwargs))
+                    return result
+                except ValueError as err:
+                    resp = err.args[0]
+                    response.status = resp['code']
+                    return resp
+
+            return inner
+        ```
+        """
+        routes = []
+        for name in dir(self):
+            if method := getattr(self, name, None):
+                # The 'entrypoint routes' attr may be on a super method
+                sms = [getattr(c, name, None) for c in self.__class__.mro()]
+                eps = [getattr(m, 'entrypoint routes', None) for m in sms]
+                for route in next((routes for routes in eps if routes), []):
+                    routes.append((method, route))
+        return routes
