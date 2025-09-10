@@ -8,14 +8,34 @@
 
 """
 This module provides a set of functions that can be useful while
-making HTTP(S) requests.  It includes a class, #PersistentSession,
-as well as a factory method, #prepare_session().
+making HTTP(S) requests.  It includes a factory function,
+#prepare_session() and a class, #PersistentSession.
 
 It depends on the public **requests** library.
 
-Sessions are `requests.Session` objects.  They can be closed either
-implicitly (`with session(): ...`) or explicitly (`session().close()`).
-If so, they will reopen as needed.
+## Factory Function
+
+The #prepare_session() function returns a new #PersistentSession
+instance.
+
+## Class
+
+The #PersistentSession class is a callable that returns a
+`requests.Session` object.  The session is created only when the
+callable is called for the first time.
+
+## Usage
+
+```python
+from zabel.commons.sessions import prepare_session
+
+session = prepare_session(auth='token')
+# The HTTP session doesn't exist yet.
+session().get('http://example.com/foo')
+# The HTTP session is now open
+session().put('http://example.com/foo', data='bar')
+# The same HTTP session was used, and the session is still open
+```
 """
 
 from typing import Any, Dict, Optional
@@ -83,18 +103,5 @@ def prepare_session(
     # Returned value
 
     A new #PersistentSession instance.
-
-    # Sample usage
-
-    ```python
-    from commons.sessions import prepare_session
-
-    session = prepare_session('token')
-    # The HTTP session doesn't exist yet.
-    session().get('http://example.com/foo')
-    # The HTTP session is now open
-    session().put('http://example.com/foo', data='bar')
-    # The same HTTP session was used
-    ```
     """
     return PersistentSession(auth, cookies, verify)

@@ -13,7 +13,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='zabel-commons',
-    version='1.7.0',
+    version='1.8.0',
     description='The Zabel transverse **commons** library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -31,5 +31,5 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Utilities',
     ],
-    python_requires='>= 3.8.0',
+    python_requires='>= 3.10.0',
 )

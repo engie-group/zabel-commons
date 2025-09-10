@@ -19,4 +19,4 @@ underlying APIs.
 
 
 class ApiError(Exception):
-    """The tooling API exception class."""
+    """The Zabel API base exception class."""
