@@ -10,15 +10,18 @@
 **The deprecated Utility and ManagedService interfaces have been
 removed.**
 
-This module provides two interfaces that are used to manage API services:
+This module provides two interfaces that are used to manage API
+services:
 
-| Interfaces                | Description                              |
+| Interfaces           {.s} | Description                              |
 | ------------------------- | ---------------------------------------- |
 | #ApiServer                | A marker for API servers.                |
 | #Image                    | A marker for images (containers-like API
                               services).                               |
 """
 
+
+from .kludgeutility import KludgeUtility as Utility
 
 ########################################################################
 ## Interfaces
@@ -41,7 +44,6 @@ class Image:
 
     ```python
     def __init__(self):
-        ...
     ```
 
     The `run()` method takes any number of parameters.  It represents
