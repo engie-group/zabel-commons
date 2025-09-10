@@ -6,6 +6,19 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
+# Usage
+#
+# Local install:
+#
+#     pip3 install --upgrade .
+#     pip3 install -e .
+#
+# Build and publish (assuming a proper ~/.pypirc)
+#
+#     rm -r build/ dist/
+#     python3 setup.py bdist_wheel [upload -r local]
+#     twine upload [--repository testpypi] dist/*
+
 from setuptools import setup, find_namespace_packages
 
 with open('README.md', 'r') as fh:
