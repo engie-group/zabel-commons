@@ -305,3 +305,30 @@ class KludgeUtility:
                 for route in next((routes for routes in eps if routes), []):
                     routes.append((method, route))
         return routes
+
+
+class KludgeManager:
+    """Abstract Manager Wrapper.
+
+    A simple marker for manager classes.
+
+    # Properties
+
+    | Property name | Description          | Default implementation? |
+    | ------------- | -------------------- | ----------------------- |
+    | `platform`    | The platform the
+                      manager is part of.  | Yes (read/write)        |
+    """
+
+    _platform: Any
+
+    @property
+    def platform(self) -> Any:
+        """Return the Platform the manager is attached to."""
+        return self._platform
+
+    @platform.setter
+    def platform(self, value: Any) -> None:
+        """Set the Platform the manager is attached to."""
+        # pylint: disable=attribute-defined-outside-init
+        self._platform = value

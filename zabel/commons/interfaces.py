@@ -21,7 +21,8 @@ services:
 """
 
 
-from .kludgeutility import KludgeUtility as Utility
+from .kludgeutility import KludgeManager as Manager, KludgeUtility as Utility
+
 
 ########################################################################
 ## Interfaces
