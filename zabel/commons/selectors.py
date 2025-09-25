@@ -81,7 +81,7 @@ import re
 ## Constants
 
 Object = Dict[str, Any]
-type OpCode = Tuple[
+OpCode = Tuple[
     int,
     Optional[Union[str, List[str]]],
     Optional[bool],
