@@ -9,10 +9,9 @@
 """
 This module provides a set of functions that handle _selectors_.
 
-A selector is an expression that can be used to match a JSON object (a
-dictionary).
+A selector is an expression that matches a JSON object (a dictionary).
 
-For example:
+For example,
 
     foo.bar in (abc, def)
 
@@ -27,6 +26,8 @@ will match
   }
 }
 ```
+
+The selector format is a superset of Kubernetes' field and label selectors.
 
 Here are the possible selector formats:
 
@@ -47,31 +48,132 @@ key notin (value1, value2, ...)    # the key exists and has a value not in the
                                    # not exist
 ```
 
-Logical operators supported in selector conditions are `=` (or `==`), `!=`, `in`, and `notin`.
+## Equality-based requirements
 
-Multiple conditions may be provided, separated by commas (`,`).  The conditions are linked by
-a logical _AND_ operator.
+_Equality-_ or _inequality-based_ requirements allow filtering by field
+or label keys and values.  Matching objects must satisfy all of the
+specified field or label constraints, though they may have additional
+fields or labels as well.
 
-For label selectors, the key is the label's name.  It may contain dots.  For field selectors,
-the key is a series of field names separated by dots.  The last field name may be surrounded
-by `[` and `]` to allow for dots in the field name.
+Three kinds of operators are admitted `=`, `==`, `!=`.  The first two
+represent _equality_ (and are synonyms), while the latter represents
+_inequality_.  For example:
 
-Here are examples of `fieldSelector` keys:
+```text
+environment = production
+tier != frontend
+```
+
+## Set-based requirements
+
+_Set-based_ field and label requirements allow filtering keys according
+to a set of values.  Three kinds of operators are supported: `in`,
+`notin`, and `exists` (only the key identifier). For example:
+
+```text
+environment in (production, qa)
+tier notin (frontend, backend)
+partition
+!partition
+(tainted, running) in status     # only for field requirements
+(sweet, sour) notin flavor       # only for field requirements
+```
+
+- The first example selects all resources with key equal to `environment`
+  and value equal to `production` or `qa`.
+- The second example selects all resources with key equal to `tier` and
+  values other than `frontend` and `backend`, and all resources with no
+  labels with the `tier` key.
+- The third example selects all resources including a label with key
+  `partition`; no values are checked.
+- The fourth example selects all resources without a label with key
+  `partition`; no values are checked.
+- The fifth example selects all resources with key `status` and values
+  containing both `tainted` and `running` (and possibly others).
+- The sixth example selects all resources with key `flavor` and values
+  not containing both `sweet` and `sour`, and all resources without
+  a `flavor` field.
+
+Similarly the comma separator acts as an _AND_ operator. So filtering
+resources with a `partition` key (no matter the value) and with
+`environment` different than `qa` can be achieved using
+`partition,environment notin (qa)`.  The set-based field or label
+selector is a general form of equality since `environment=production` is
+equivalent to `environment in (production)`; similarly for `!=` and
+`notin`.
+
+Set-based requirements can be mixed with equality-based requirements.
+For example: `partition in (customerA, customerB),environment!=qa`.
+
+## Field selectors
+
+For field selectors, the key is a series of field names separated by
+dots.  The last fields names may be surrounded by `[` and `]` to allow
+for dots in the fields names.
+
+<h3>Examples</h3>
+
+Here are examples of field selector keys:
 
 ```text
 apiVersion
 metadata.name
 metadata[name]                                  # another way to write it
 spec.selector.matchLabels[example.org/label]
+spec[selector][matchLabels][example.org/label]  # another way to write it
 
-[apiVersion]                                    # Invalid
-spec[selector][matchLabels][example.org/label]  # Invalid
+spec[selector].matchLabels[example.org/label]   # invalid
+[apiVersion]                                    # invalid
 ```
 
-This is a superset of what is possible with Kubernetes field selectors.  It
-allows to refer to fields containing `.` in their names, if they are in the last
-position.
+This is a superset of what is possible with Kubernetes field selectors.
+It allows to refer to fields containing `.` in their names, if they are
+in the last positions.
+
+## Label selectors
+
+For label selectors, the key is the label's name.  It may contain dots.
+
+!!! tip
+    Label selectors are a specialized form of field selectors.  A label
+    selector of `key op value` is strictly equivalent to the
+    `metadata.labels[key] op value` field selector.
+
+## Usage
+
+```python
+from zabel.commons import selectors
+
+foo = {'abc': 'def', 'ghi': {'jkl': 'secret'}, 'mno': 'pqr'}
+bar = {'abc': 'def', 'ghi': {'jkl': 'secret2'}}
+
+# You can use an expression as a selector
+selectors.match(foo, 'ghi.jkl==secret')                    # true
+selectors.match(bar, 'ghi.jkl==secret')                    # false
+
+# You can compile the selector if you intend to reuse it often
+sel = selectors.compile('ghi.jkl==secret')
+selectors.match(foo, sel)                                  # true
+selectors.match(bar, sel)                                  # false
+
+# A selector can contain more than one expression
+selectors.match(bar, 'abc,ghi.jkl')                        # true
+selectors.match(foo, 'abc,ghi.jkl')                        # true
+
+# All expressions must match
+sel2 = selectors.compile('abc,ghi.jkl in (secret, secret2),!mno')
+selectors.match(foo, sel2)                                 # false
+selectors.match(bar, sel2)                                 # true
+
+# You can use spaces after a comma or around an operator if you
+# like, but not in a key or value
+sel2 = selectors.compile('abc, ghi.jkl == secret, ! mno')  # ok
+sel2 = selectors.compile('ghi . jkl == secret')            # invalid
+sel2 = selectors.compile('ghi.jkl == my secret')           # invalid
+```
 """
+
+__all__ = ['compile', 'match', 'prepare']
 
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -88,18 +190,16 @@ OpCode = Tuple[
     Optional[Union[str, Set[str]]],
 ]
 
-KEY = r'[a-z0-9A-Z-_./]+'
+KEY = r'([a-z0-9A-Z-_./]+)'
+TAIL = rf'((\[\s*{KEY}\s*\])*)'
 VALUE = r'[a-z0-9A-Z-_./@:#]+'
-TAIL = rf"\[({KEY})\]"
-EQUAL_EXPR = re.compile(rf'^({KEY})({TAIL})?\s*([=!]?=)\s*({VALUE})(?:,|$)')
-INSET_EXPR = re.compile(
-    rf'^({KEY})({TAIL})?\s+(in|notin)\s+\(({VALUE}(\s*,\s*{VALUE})*)\)(?:,|$)'
-)
-SETIN_EXPR = re.compile(
-    rf'^\(({VALUE}(\s*,\s*{VALUE})*)\)\s+(in|notin)\s+({KEY})({TAIL})?(?:,|$)'
-)
-EXISTS_EXPR = re.compile(rf'^({KEY})({TAIL})?(?:,|$)')
-NEXISTS_EXPR = re.compile(rf'^!({KEY})({TAIL})?(?:,|$)')
+SET = rf'\(\s*({VALUE}(\s*,\s*{VALUE})*)\s*\)'
+
+EQUAL_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s*([=!]?=)\s*({VALUE})\s*(?:,|$)')
+INSET_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s+(in|notin)\s+{SET}\s*(?:,|$)')
+SETIN_EXPR = re.compile(rf'^\s*{SET}\s+(in|notin)\s+{KEY}{TAIL}\s*(?:,|$)')
+EXISTS_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s*(?:,|$)')
+NEXISTS_EXPR = re.compile(rf'^\s*!\s*{KEY}{TAIL}\s*(?:,|$)')
 
 
 ########################################################################
@@ -113,7 +213,7 @@ OP_INSET = 0x80
 OP_SETIN = 0x100
 
 
-def compile_selector(exprs: str, resolve_path: bool = True) -> List[OpCode]:
+def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     """Compile selector.
 
     # Required parameters
@@ -132,32 +232,59 @@ def compile_selector(exprs: str, resolve_path: bool = True) -> List[OpCode]:
 
     A _ValueError_ exception is raised if at least one expression is
     invalid.
+
+    # Usage
+
+    `resolve_path` specifies whether a key containing dots should be
+    interpreted or used literally.
+
+    It is typically set to false when compiling label selectors.
+
+    ```python
+    field = selectors.compile('a.b.c', resolve_path=True)  # default
+    selectors.match({'a': {'b': {'c': 34}}}, field)        # true
+
+    label = selectors.compile('a.b.c', resolve_path=False)
+    selectors.match({'a.b.c': 12}, label)                  # true
+    ```
     """
 
-    def _opcode(code, key, ope=None, val=None, tail=None):
+    def _split_tail(tl: str) -> List[str]:
+        return [t.strip() for t in tl.split('][')] if tl else []
+
+    def _opcode(
+        code: int,
+        key: str,
+        neq: bool = False,
+        val: Optional[Union[str, Set[str]]] = None,
+        tail: str = '',
+    ) -> OpCode:
         if not resolve_path and tail:
             raise ValueError(f'[] not allowed in label selectors: {exprs}.')
         if resolve_path and (tail or '.' in key):
             return (
                 code | OP_RESOLV,
-                key.split('.') + ([tail] if tail else []),
-                ope,
+                key.split('.') + _split_tail(tail.strip('[]')),
+                neq,
                 val,
             )
-        return code, key, ope, val
+        return code, key, neq, val
 
-    if not exprs:
+    if not isinstance(exprs, str):
+        raise ValueError(f'Invalid selector {exprs}, was expecting a string.')
+
+    if not exprs.strip():
         return []
 
     if match := EQUAL_EXPR.match(exprs):
-        key, _, tail, ope, value = match.groups()
+        key, tail, _, _, ope, value = match.groups()
         instr = _opcode(OP_EQUAL, key, ope == '!=', value, tail)
     elif match := EXISTS_EXPR.match(exprs):
-        instr = _opcode(OP_EXIST, match.group(1), tail=match.group(3))
+        instr = _opcode(OP_EXIST, match.group(1), tail=match.group(2))
     elif match := NEXISTS_EXPR.match(exprs):
-        instr = _opcode(OP_NEXIST, match.group(1), tail=match.group(3))
+        instr = _opcode(OP_NEXIST, match.group(1), tail=match.group(2))
     elif match := INSET_EXPR.match(exprs):
-        key, _, tail, ope, vals, _ = match.groups()
+        key, tail, _, _, ope, vals, _ = match.groups()
         instr = _opcode(
             OP_INSET,
             key,
@@ -166,7 +293,7 @@ def compile_selector(exprs: str, resolve_path: bool = True) -> List[OpCode]:
             tail,
         )
     elif match := SETIN_EXPR.match(exprs):
-        vals, _, ope, key, _, tail = match.groups()
+        vals, _, ope, key, tail, _, _ = match.groups()
         instr = _opcode(
             OP_SETIN,
             key,
@@ -177,23 +304,18 @@ def compile_selector(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     else:
         raise ValueError(f'Invalid expression {exprs}.')
 
-    return [instr] + compile_selector(
-        exprs[match.end() :].strip(', '), resolve_path
-    )
+    return [instr] + compile(exprs[match.end() :].strip(', '), resolve_path)
 
 
-def _resolve_path(items: List[str], obj) -> Tuple[bool, Optional[Any]]:
-    head, rest = items[0], items[1:]
-    try:
-        if head in obj:
-            return (
-                (True, obj[head])
-                if not rest
-                else _resolve_path(rest, obj[head])
-            )
-    except TypeError:
-        pass
-    return False, None
+def _resolve_path(items: List[str], obj: Object) -> Tuple[bool, Optional[Any]]:
+    current = obj
+    for key in items:
+        if not isinstance(current, dict):
+            return False, None
+        if key not in current:
+            return False, None
+        current = current[key]
+    return True, current
 
 
 def _evaluate(obj: Object, req: OpCode) -> bool:
@@ -233,7 +355,7 @@ def match_compiledlabelselector(obj: Object, opcodes: List[OpCode]) -> bool:
     return all(_evaluate(labels, opcode) for opcode in opcodes)
 
 
-def match_selectors(
+def match(
     obj: Object,
     fieldselector: Union[None, str, List[OpCode]] = None,
     labelselector: Union[None, str, List[OpCode]] = None,
@@ -243,8 +365,7 @@ def match_selectors(
     An empty selector matches.  The selectors can be strings or
     compiled selectors.
 
-    The complete selector feature has been implemented.  `selector` is
-    of form:
+    A string selector is of form:
 
         expr[,expr]*
 
@@ -273,9 +394,9 @@ def match_selectors(
     `labelselector` is not a valid.
     """
     if isinstance(fieldselector, str):
-        fieldselector = compile_selector(fieldselector)
+        fieldselector = compile(fieldselector)
     if isinstance(labelselector, str):
-        labelselector = compile_selector(labelselector, resolve_path=False)
+        labelselector = compile(labelselector, resolve_path=False)
     return (
         not fieldselector or match_compiledfieldselector(obj, fieldselector)
     ) and (
@@ -283,13 +404,14 @@ def match_selectors(
     )
 
 
-def prepare_selectors(
+def prepare(
     src: Any,
 ) -> Tuple[Optional[List[OpCode]], Optional[List[OpCode]]]:
     """Prepare selectors if defined.
 
-    `src` is typically a request arg dictionary.  The selectors,
-    `fieldSelector` and `labelSelector`, are compiled if defined.
+    `src` is typically a request arg dictionary.  It must implement the
+    `get()` protocol.  The selectors, `fieldSelector` and
+    `labelSelector`, are compiled if found in `src`.
 
     # Required parameters
 
@@ -297,7 +419,7 @@ def prepare_selectors(
 
     # Returned value
 
-    A pair of lists of opcodes or None.
+    A `(fieldselector, labelselector)` pair of lists of opcodes or None.
 
     # Raised exceptions
 
@@ -308,7 +430,7 @@ def prepare_selectors(
     labelselector = src.get('labelSelector')
 
     if fieldselector:
-        fieldselector = compile_selector(fieldselector)
+        fieldselector = compile(fieldselector)
     if labelselector:
-        labelselector = compile_selector(labelselector, resolve_path=False)
+        labelselector = compile(labelselector, resolve_path=False)
     return fieldselector, labelselector
