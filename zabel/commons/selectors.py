@@ -41,11 +41,10 @@ key!=value                         # the key exists but has a different value
 key in (value1, value2, ...)       # the key exists and its value is in the list
 key notin (value1, value2, ...)    # the key exists and has a value not in the
                                    # list or the key does not exist
-(value1, value2, ...) in key       # the key contains all values (and possibly
-                                   # others)
-(value1, value2, ...) notin key    # the key does not contains all the values
-                                   # (but it may contain some) or the key does
-                                   # not exist
+(value1, value2, ...) in key       # the key contains at least one of the values
+                                   # in the list (and possibly others)
+(value1, value2, ...) notin key    # the key does not contain any of the values
+                                   # in the list or the key does not exist
 ```
 
 ## Equality-based requirements
@@ -75,8 +74,8 @@ environment in (production, qa)
 tier notin (frontend, backend)
 partition
 !partition
-(tainted, running) in status     # only for field requirements
-(sweet, sour) notin flavor       # only for field requirements
+(tainted, running) in status
+(sweet, sour) notin flavor
 ```
 
 - The first example selects all resources with key equal to `environment`
@@ -89,9 +88,9 @@ partition
 - The fourth example selects all resources without a label with key
   `partition`; no values are checked.
 - The fifth example selects all resources with key `status` and values
-  containing both `tainted` and `running` (and possibly others).
+  containing `tainted` and/or `running` (and possibly others).
 - The sixth example selects all resources with key `flavor` and values
-  not containing both `sweet` and `sour`, and all resources without
+  containing neither `sweet` nor `sour`, and all resources without
   a `flavor` field.
 
 Similarly the comma separator acts as an _AND_ operator. So filtering
@@ -107,37 +106,112 @@ For example: `partition in (customerA, customerB),environment!=qa`.
 
 ## Field selectors
 
-For field selectors, the key is a series of field names separated by
-dots.  The last fields names may be surrounded by `[` and `]` to allow
-for dots in the fields names.
+For field selectors, the key is a series of field names (letters, digits,
+`-`, `_`, and `/` are allowed) separated by dots.
 
-<h3>Examples</h3>
-
-Here are examples of field selector keys:
+Here are examples of field selectors:
 
 ```text
-apiVersion
-metadata.name
-metadata[name]                                  # another way to write it
-spec.selector.matchLabels[example.org/label]
-spec[selector][matchLabels][example.org/label]  # another way to write it
-
-spec[selector].matchLabels[example.org/label]   # invalid
-[apiVersion]                                    # invalid
+apiVersion == v1
+metadata.name == my-app-foo
+(app) in spec.selector.matchLabels
 ```
 
-This is a superset of what is possible with Kubernetes field selectors.
-It allows to refer to fields containing `.` in their names, if they are
-in the last positions.
+They will match objects of the form:
+
+```json hl_lines="2 4 12-14"
+{
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "my-app-foo",
+    "labels": {
+      "app": "my-app",
+      "app.domain/component": "backend"
+    }
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "app": "my-app"
+      }
+    }
+  }
+}
+```
 
 ## Label selectors
 
 For label selectors, the key is the label's name.  It may contain dots.
 
+Here are examples of label selectors:
+
+```text
+app == my-app
+app.domain/component in (frontend, backend)
+```
+
+They will match objects of the form:
+
+```json hl_lines="4 5"
+{
+  "metadata": {
+    "labels": {
+      "app": "my-app",
+      "app.domain/component": "backend"
+    }
+  }
+}
+```
+
 !!! tip
-    Label selectors are a specialized form of field selectors.  A label
-    selector of `key op value` is strictly equivalent to the
-    `metadata.labels[key] op value` field selector.
+    Label selectors are a specialized form of JSONPath selectors.  A
+    label selector of `key op value` is strictly equivalent to the
+    `$.metadata.labels['key'] op 'value'` JSONPath selector.
+
+## JSONPath selectors
+
+Field selector keys can also use a restricted form of JSONPath.  A
+JSONPath key starts with a dollar sign (`$`) followed by a series of
+field names (starting with a dot) or dictionary keys (quoted, between
+brackets).  For example:
+
+```text
+$.metadata.name
+$.metadata.labels.app
+$.metadata.labels['app.domain']
+$["foo.bar'"].spec.image
+```
+
+They will match objects of the form:
+
+```json hl_lines="3 5-6 11"
+{
+  "metadata": {
+    "name": "my-app-foo",
+    "labels": {
+      "app": "my-app",
+      "app.domain": "backend"
+    }
+  },
+  "foo.bar'": {
+    "spec": {
+      "image": "my-image:v1.2.3"
+    }
+  }
+}
+```
+
+When a JSONPath key is used, the values, if any, must be quoted (that is,
+surrounded by single or double quotes):
+
+```text
+$.metadata.name == 'my-app'
+$.metadata.labels.app in ('my-app', "your-app")
+$["foo.bar'"].spec.image != "my-image:latest"
+```
+
+JSONPath selectors can be mixed with field selectors.
+For example:<br/>`partition in (customerA, customerB),$.environment!="qa"`.
 
 ## Usage
 
@@ -170,6 +244,9 @@ selectors.match(bar, sel2)                                 # true
 sel2 = selectors.compile('abc, ghi.jkl == secret, ! mno')  # ok
 sel2 = selectors.compile('ghi . jkl == secret')            # invalid
 sel2 = selectors.compile('ghi.jkl == my secret')           # invalid
+
+# You can use JSONPath selectors if you need spaces in your values
+sel2 = selectors.compile('$.ghi.jkl == "my secret"')       # ok
 ```
 """
 
@@ -184,22 +261,32 @@ import re
 
 Object = Dict[str, Any]
 OpCode = Tuple[
-    int,
-    Optional[Union[str, List[str]]],
-    Optional[bool],
-    Optional[Union[str, Set[str]]],
+    int, Optional[Union[str, List[str]]], bool, Optional[Union[str, Set[str]]]
 ]
 
 KEY = r'([a-z0-9A-Z-_./]+)'
-TAIL = rf'((\[\s*{KEY}\s*\])*)'
 VALUE = r'[a-z0-9A-Z-_./@:#]+'
 SET = rf'\(\s*({VALUE}(\s*,\s*{VALUE})*)\s*\)'
 
-EQUAL_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s*([=!]?=)\s*({VALUE})\s*(?:,|$)')
-INSET_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s+(in|notin)\s+{SET}\s*(?:,|$)')
-SETIN_EXPR = re.compile(rf'^\s*{SET}\s+(in|notin)\s+{KEY}{TAIL}\s*(?:,|$)')
-EXISTS_EXPR = re.compile(rf'^\s*{KEY}{TAIL}\s*(?:,|$)')
-NEXISTS_EXPR = re.compile(rf'^\s*!\s*{KEY}{TAIL}\s*(?:,|$)')
+EQUAL_EXPR = re.compile(rf'^\s*{KEY}\s*([=!]?=)\s*({VALUE})\s*(?:,|$)')
+INSET_EXPR = re.compile(rf'^\s*{KEY}\s+(in|notin)\s+{SET}\s*(?:,|$)')
+SETIN_EXPR = re.compile(rf'^\s*{SET}\s+(in|notin)\s+{KEY}\s*(?:,|$)')
+EXISTS_EXPR = re.compile(rf'^\s*{KEY}\s*(?:,|$)')
+NEXISTS_EXPR = re.compile(rf'^\s*!\s*{KEY}\s*(?:,|$)')
+
+## https://www.rfc-editor.org/rfc/rfc9535
+
+QVALUE = r'''('[^']*'|"[^"]*")'''
+DSEGMENT = r'\.([a-zA-Z_][a-z0-9A-Z_]*)'
+BSEGMENT = rf'\[\s*{QVALUE}\s*\]'
+SEGMENTS = rf'\$\s*(({DSEGMENT}|{BSEGMENT})*)'
+QSET = rf'\(\s*({QVALUE}(\s*,\s*{QVALUE})*)\s*\)'
+
+EQUAL_JEXPR = re.compile(rf'^\s*{SEGMENTS}\s*([=!]?=)\s*{QVALUE}\s*(?:,|$)')
+INSET_JEXPR = re.compile(rf'^\s*{SEGMENTS}\s+(in|notin)\s+{QSET}\s*(?:,|$)')
+SETIN_JEXPR = re.compile(rf'^\s*{QSET}\s+(in|notin)\s+{SEGMENTS}\s*(?:,|$)')
+EXISTS_JEXPR = re.compile(rf'^\s*{SEGMENTS}\s*(?:,|$)')
+NEXISTS_JEXPR = re.compile(rf'^\s*!\s*{SEGMENTS}\s*(?:,|$)')
 
 
 ########################################################################
@@ -211,6 +298,28 @@ OP_EXIST = 0x20
 OP_NEXIST = 0x40
 OP_INSET = 0x80
 OP_SETIN = 0x100
+
+
+def _segs(segs: str) -> List[str]:
+    split: List[str] = []
+    while segs:
+        if match := re.match(DSEGMENT, segs):
+            split.append(match.group(1))
+            segs = segs[match.end() :]
+        elif match := re.match(BSEGMENT, segs):
+            split.append(match.group(1)[1:-1])
+            segs = segs[match.end() :]
+        else:
+            raise ValueError(f'Invalid JSONPath segment {segs}.')
+    return split
+
+
+def _qvals(qval: str) -> Set[str]:
+    return {v[1:-1] for v in re.findall(QVALUE, qval)}
+
+
+def _vals(vals: str) -> Set[str]:
+    return {v.strip() for v in vals.split(',')}
 
 
 def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
@@ -249,25 +358,18 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     ```
     """
 
-    def _split_tail(tl: str) -> List[str]:
-        return [t.strip() for t in tl.split('][')] if tl else []
-
     def _opcode(
         code: int,
-        key: str,
+        key: Union[str, List[str]],
         neq: bool = False,
         val: Optional[Union[str, Set[str]]] = None,
-        tail: str = '',
     ) -> OpCode:
-        if not resolve_path and tail:
-            raise ValueError(f'[] not allowed in label selectors: {exprs}.')
-        if resolve_path and (tail or '.' in key):
-            return (
-                code | OP_RESOLV,
-                key.split('.') + _split_tail(tail.strip('[]')),
-                neq,
-                val,
-            )
+        if not resolve_path and isinstance(key, list):
+            raise ValueError('JSONPath not allowed in label selectors.')
+        if resolve_path and isinstance(key, str) and '.' in key:
+            return code | OP_RESOLV, key.split('.'), neq, val
+        if resolve_path and isinstance(key, list):
+            return code | OP_RESOLV, key, neq, val
         return code, key, neq, val
 
     if not isinstance(exprs, str):
@@ -276,33 +378,39 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     if not exprs.strip():
         return []
 
+    # Simple selectors
     if match := EQUAL_EXPR.match(exprs):
-        key, tail, _, _, ope, value = match.groups()
-        instr = _opcode(OP_EQUAL, key, ope == '!=', value, tail)
+        key, ope, value = match.groups()
+        instr = _opcode(OP_EQUAL, key, ope == '!=', value)
     elif match := EXISTS_EXPR.match(exprs):
-        instr = _opcode(OP_EXIST, match.group(1), tail=match.group(2))
+        instr = _opcode(OP_EXIST, match.group(1))
     elif match := NEXISTS_EXPR.match(exprs):
-        instr = _opcode(OP_NEXIST, match.group(1), tail=match.group(2))
+        instr = _opcode(OP_NEXIST, match.group(1))
     elif match := INSET_EXPR.match(exprs):
-        key, tail, _, _, ope, vals, _ = match.groups()
-        instr = _opcode(
-            OP_INSET,
-            key,
-            ope == 'notin',
-            {v.strip() for v in vals.split(',')},
-            tail,
-        )
+        key, ope, vals, _ = match.groups()
+        instr = _opcode(OP_INSET, key, ope == 'notin', _vals(vals))
     elif match := SETIN_EXPR.match(exprs):
-        vals, _, ope, key, tail, _, _ = match.groups()
-        instr = _opcode(
-            OP_SETIN,
-            key,
-            ope == 'notin',
-            {v.strip() for v in vals.split(',')},
-            tail,
-        )
+        vals, _, ope, key = match.groups()
+        instr = _opcode(OP_SETIN, key, ope == 'notin', _vals(vals))
+
+    # JSONPath
+    elif match := EQUAL_JEXPR.match(exprs):
+        segs, _, _, _, ope, qvalue = match.groups()
+        instr = _opcode(OP_EQUAL, _segs(segs), ope == '!=', qvalue[1:-1])
+    elif match := EXISTS_JEXPR.match(exprs):
+        instr = _opcode(OP_EXIST, _segs(match.group(1)))
+    elif match := NEXISTS_JEXPR.match(exprs):
+        instr = _opcode(OP_NEXIST, _segs(match.group(1)))
+    elif match := INSET_JEXPR.match(exprs):
+        segs, _, _, _, ope, qvals, _, _, _ = match.groups()
+        instr = _opcode(OP_INSET, _segs(segs), ope == 'notin', _qvals(qvals))
+    elif match := SETIN_JEXPR.match(exprs):
+        qvals, _, _, _, ope, segs, _, _, _ = match.groups()
+        instr = _opcode(OP_SETIN, _segs(segs), ope == 'notin', _qvals(qvals))
+
+    # Invalid
     else:
-        raise ValueError(f'Invalid expression {exprs}.')
+        raise ValueError(f'Invalid selector expression {exprs}.')
 
     return [instr] + compile(exprs[match.end() :].strip(', '), resolve_path)
 
@@ -338,7 +446,7 @@ def _evaluate(obj: Object, req: OpCode) -> bool:
         return not found
 
     if found and opcode & OP_SETIN:
-        return (set({} if value is None else value) >= arg) ^ neq  # type: ignore
+        return any(v in (value or {}) for v in arg) ^ neq  # type: ignore
     if found and opcode & OP_EQUAL:
         return (str(value) == arg) ^ neq  # type: ignore
     if found:  # OP_INSET
@@ -362,19 +470,6 @@ def match(
 ) -> bool:
     """Check if object matches selector.
 
-    An empty selector matches.  The selectors can be strings or
-    compiled selectors.
-
-    A string selector is of form:
-
-        expr[,expr]*
-
-    where `expr` is one of `key`, `!key`, or `key op value`, with
-    `op` being one of `=`, `==`, or `!=`.  The
-    `key in (value[, value...])`, `key notin (value[, value...])`,
-    `(value[, value...]) in key`, and `(value[, value...]) notin key`
-    set-based requirements are also implemented.
-
     # Required parameters
 
     - obj: a dictionary
@@ -392,6 +487,26 @@ def match(
 
     A _ValueError_ exception is raised if `fieldselector` or
     `labelselector` is not a valid.
+
+    # Usage
+
+    An empty selector matches.  The selectors can be strings or
+    compiled selectors.
+
+    A string selector is of form:
+
+        expr[,expr]*
+
+    where `expr` is one of `key`, `!key`, or `key op value`, with
+    `op` being one of `=`, `==`, or `!=`.  The
+    `key in (value[, value...])`, `key notin (value[, value...])`,
+    `(value[, value...]) in key`, and `(value[, value...]) notin key`
+    set-based requirements are also implemented.
+
+    Field selectors are applied to the object itself, while label
+    selectors are applied to the `metadata.labels` dictionary of the
+    object (or an empty dictionary if the object has no `metadata` or
+    no `labels`).
     """
     if isinstance(fieldselector, str):
         fieldselector = compile(fieldselector)

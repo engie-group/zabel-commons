@@ -332,7 +332,7 @@ class TestSelectors(unittest.TestCase):
     def test_compile(self):
         self.assertRaisesRegex(
             ValueError,
-            'Invalid expression foo>12',
+            'Invalid selector expression foo>12',
             selectors.compile,
             'foo>12',
         )
@@ -340,7 +340,7 @@ class TestSelectors(unittest.TestCase):
     def test_compile_badvalue(self):
         self.assertRaisesRegex(
             ValueError,
-            'Invalid expression foo==not_?.',
+            'Invalid selector expression foo==not_?.',
             selectors.compile,
             'foo==not_ok?',
         )
@@ -377,14 +377,14 @@ class TestSelectors(unittest.TestCase):
             ValueError,
             selectors.match,
             {'foo': 'bar', 'metadata': {'labels': {'bar': 'baz'}}},
-            labelselector='bar[foo]==baz',
+            labelselector='$.bar["foo"]=="baz"',
         )
 
     def test_match_fieldselector_doublebrackets_ok(self):
         self.assertTrue(
             selectors.match(
                 {'foo': 'bar', 'metadata': {'labels': {'bar': 'baz'}}},
-                fieldselector='metadata[labels][bar]==baz',
+                fieldselector='$.metadata["labels"][\'bar\']==\'baz\'',
             )
         )
 
@@ -392,7 +392,7 @@ class TestSelectors(unittest.TestCase):
         self.assertFalse(
             selectors.match(
                 {'foo': 'bar', 'metadata': {'labels': {'bar': 'baz'}}},
-                fieldselector='foo[b]',
+                fieldselector='$ .foo[   "b"]',
             )
         )
 
@@ -403,7 +403,7 @@ class TestSelectors(unittest.TestCase):
                     'foo': 'bar',
                     'metadata': {'annotations': {'foo.bar': 'baz'}},
                 },
-                fieldselector='metadata.annotations[foo.bar]==baz',
+                fieldselector='$.metadata.annotations["foo.bar"]=="baz"   ',
             )
         )
 
@@ -414,7 +414,7 @@ class TestSelectors(unittest.TestCase):
                     'foo': 'bar',
                     'metadata': {'annotations': {'foo.bar': 'baz'}},
                 },
-                fieldselector='metadata.annotations[foo.bar] in (foobar, baz)',
+                fieldselector='$.metadata.annotations["foo.bar"  ] in ("foobar"  , "baz" )',
             )
         )
 
@@ -425,7 +425,7 @@ class TestSelectors(unittest.TestCase):
                     'foo': 'bar',
                     'metadata': {'annotations': {'foo.bar': ['baz']}},
                 },
-                fieldselector='(baz) in metadata.annotations[foo.bar]',
+                fieldselector='("baz") in $.metadata.annotations["foo.bar"]',
             )
         )
 
@@ -436,7 +436,7 @@ class TestSelectors(unittest.TestCase):
                     'foo': 'bar',
                     'metadata': {'annotations': {'foo.bar': 'baz'}},
                 },
-                fieldselector='metadata.annotations[foo.bar]',
+                fieldselector='$.metadata.annotations["foo.bar"]',
             )
         )
 
@@ -447,7 +447,7 @@ class TestSelectors(unittest.TestCase):
                     'foo': 'bar',
                     'metadata': {'annotations': {'foo.bar': 'baz'}},
                 },
-                fieldselector='!metadata.annotations[foo.bar]',
+                fieldselector='!$.metadata.annotations["foo.bar"]',
             )
         )
 
@@ -471,67 +471,99 @@ class TestSelectors(unittest.TestCase):
             selectors.match({'foo': 'bar'}, fieldselector='(z) notin baz')
         )
 
-    def test_match_setin_tags_one_ok(self):
+    def test_match_setin_string_one_ok(self):
         self.assertTrue(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(a) in spec.tags',
+                {'foo': 'bar', 'spec': {'string': 'abcdef'}},
+                fieldselector='(abc) in spec.string',
             )
         )
 
-    def test_match_setin_tags_one_nok(self):
+    def test_match_setin_string_one_nok(self):
         self.assertFalse(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(z) in spec.tags',
+                {'foo': 'bar', 'spec': {'string': 'abcdef'}},
+                fieldselector='(cba) in spec.string',
             )
         )
 
-    def test_match_setin_tags_two_ok(self):
+    def test_match_setnotin_string_one_ok(self):
+        self.assertFalse(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'string': 'abcdef'}},
+                fieldselector='(abc) notin spec.string',
+            )
+        )
+
+    def test_match_setnotin_string_one_nok(self):
         self.assertTrue(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(a, c) in spec.tags',
+                {'foo': 'bar', 'spec': {'string': 'abcdef'}},
+                fieldselector='(cba) notin spec.string',
             )
         )
 
-    def test_match_setin_tags_two_nok(self):
-        self.assertFalse(
-            selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(z, c) in spec.tags',
-            )
-        )
-
-    def test_match_setnotin_tags_two_ok(self):
-        self.assertFalse(
-            selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(a, c) notin spec.tags',
-            )
-        )
-
-    def test_match_setnotin_tags_two_nok(self):
+    def test_match_setin_array_one_ok(self):
         self.assertTrue(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='(z, c) notin spec.tags',
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(a) in spec.array',
             )
         )
 
-    def test_match_in_tags_nok(self):
+    def test_match_setin_array_one_nok(self):
         self.assertFalse(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='spec.tags in (windows)',
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(z) in spec.array',
             )
         )
 
-    def test_match_notin_tags_ok(self):
+    def test_match_setin_array_two_ok(self):
         self.assertTrue(
             selectors.match(
-                {'foo': 'bar', 'spec': {'tags': ['a', 'b', 'c']}},
-                fieldselector='spec.tags notin (windows)',
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(a, c) in spec.array',
+            )
+        )
+
+    def test_match_setin_array_two_nok(self):
+        self.assertTrue(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(z, c) in spec.array',
+            )
+        )
+
+    def test_match_setnotin_array_two_ok(self):
+        self.assertFalse(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(a, c) notin spec.array',
+            )
+        )
+
+    def test_match_setnotin_array_two_nok(self):
+        self.assertFalse(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='(z, c) notin spec.array',
+            )
+        )
+
+    def test_match_in_array_nok(self):
+        self.assertFalse(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='spec.array in (windows)',
+            )
+        )
+
+    def test_match_notin_array_ok(self):
+        self.assertTrue(
+            selectors.match(
+                {'foo': 'bar', 'spec': {'array': ['a', 'b', 'c']}},
+                fieldselector='spec.array notin (windows)',
             )
         )
 
@@ -587,6 +619,30 @@ class TestSelectors(unittest.TestCase):
                 labelselector=selectors.compile(
                     'bar.foo==bAZ', resolve_path=False
                 ),
+            )
+        )
+
+    # root element
+
+    def test_match_root_string_ok(self):
+        self.assertTrue(
+            selectors.match('hello world', fieldselector='("hello") in $')
+        )
+
+    def test_match_root_string_nok(self):
+        self.assertFalse(
+            selectors.match('hello world', fieldselector='("hello2") in $')
+        )
+
+    def test_match_root_array_ok(self):
+        self.assertTrue(
+            selectors.match(['hello', 'world'], fieldselector='("world") in $')
+        )
+
+    def test_match_root_array_nok(self):
+        self.assertFalse(
+            selectors.match(
+                ['hello', 'world'], fieldselector='("hello2") in $'
             )
         )
 
