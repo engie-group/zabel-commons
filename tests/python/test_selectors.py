@@ -329,6 +329,9 @@ class TestSelectors(unittest.TestCase):
 
     # compile
 
+    def test_compile_notastring(self):
+        self.assertRaises(ValueError, selectors.compile, 123)
+
     def test_compile(self):
         self.assertRaisesRegex(
             ValueError,

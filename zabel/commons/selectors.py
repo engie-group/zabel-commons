@@ -102,7 +102,9 @@ equivalent to `environment in (production)`; similarly for `!=` and
 `notin`.
 
 Set-based requirements can be mixed with equality-based requirements.
-For example: `partition in (customerA, customerB),environment!=qa`.
+For example:
+
+    partition in (customerA, customerB),environment!=qa
 
 ## Field selectors
 
@@ -210,8 +212,9 @@ $.metadata.labels.app in ('my-app', "your-app")
 $["foo.bar'"].spec.image != "my-image:latest"
 ```
 
-JSONPath selectors can be mixed with field selectors.
-For example:<br/>`partition in (customerA, customerB),$.environment!="qa"`.
+JSONPath selectors can be mixed with field selectors.  For example:
+
+    partition in (customerA, customerB),$.environment!="qa"
 
 ## Usage
 
@@ -309,8 +312,6 @@ def _segs(segs: str) -> List[str]:
         elif match := re.match(BSEGMENT, segs):
             split.append(match.group(1)[1:-1])
             segs = segs[match.end() :]
-        else:
-            raise ValueError(f'Invalid JSONPath segment {segs}.')
     return split
 
 
