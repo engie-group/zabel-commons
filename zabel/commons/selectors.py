@@ -268,7 +268,7 @@ OpCode = Tuple[
 ]
 
 # Simple selectors
-KEY = r'([a-z0-9A-Z-_./]+)'
+KEY = r'([a-zA-Z_][a-z0-9A-Z-_./]+)'
 VALUE = r'[a-z0-9A-Z-_./@:#]+'
 SET = rf'\(\s*({VALUE}(\s*,\s*{VALUE})*)\s*\)'
 
