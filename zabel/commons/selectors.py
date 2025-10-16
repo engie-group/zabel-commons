@@ -248,7 +248,7 @@ sel2 = selectors.compile('abc, ghi.jkl == secret, ! mno')  # ok
 sel2 = selectors.compile('ghi . jkl == secret')            # invalid
 sel2 = selectors.compile('ghi.jkl == my secret')           # invalid
 
-# You can use JSONPath selectors if you need spaces in your values
+# You must use JSONPath selectors if you need spaces in your values
 sel2 = selectors.compile('$.ghi.jkl == "my secret"')       # ok
 ```
 """
@@ -264,7 +264,7 @@ import re
 
 Object = Dict[str, Any]
 OpCode = Tuple[
-    int, Optional[Union[str, List[str]]], bool, Optional[Union[str, Set[str]]]
+    int, Union[str, List[str], None], bool, Union[str, Set[str], None]
 ]
 
 # Simple selectors
@@ -315,8 +315,8 @@ def _segs(segs: str) -> List[str]:
     return split
 
 
-def _qvals(qval: str) -> Set[str]:
-    return {v[1:-1] for v in re.findall(QVALUE, qval)}
+def _qvals(qvals: str) -> Set[str]:
+    return {v[1:-1] for v in re.findall(QVALUE, qvals)}
 
 
 def _vals(vals: str) -> Set[str]:
@@ -363,7 +363,7 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
         code: int,
         key: Union[str, List[str]],
         neq: bool = False,
-        val: Optional[Union[str, Set[str]]] = None,
+        val: Union[str, Set[str], None] = None,
     ) -> OpCode:
         if not resolve_path and isinstance(key, list):
             raise ValueError('JSONPath not allowed in label selectors.')
