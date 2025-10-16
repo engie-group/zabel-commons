@@ -268,9 +268,9 @@ OpCode = Tuple[
 ]
 
 # Simple selectors
-KEY = r'([a-zA-Z_][a-z0-9A-Z-_./]+)'
+KEY = r'([a-zA-Z_][a-z0-9A-Z-_./]*)'
 VALUE = r'[a-z0-9A-Z-_./@:#]+'
-SET = rf'\(\s*({VALUE}(\s*,\s*{VALUE})*)\s*\)'
+SET = rf'\(\s*({VALUE}(?:\s*,\s*{VALUE})*)\s*\)'
 
 EQUAL_EXPR = re.compile(rf'^\s*{KEY}\s*([=!]?=)\s*({VALUE})\s*(?:,|$)')
 INSET_EXPR = re.compile(rf'^\s*{KEY}\s+(in|notin)\s+{SET}\s*(?:,|$)')
@@ -359,7 +359,7 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     ```
     """
 
-    def _opcode(
+    def _op(
         code: int,
         key: Union[str, List[str]],
         neq: bool = False,
@@ -376,40 +376,42 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
     if not isinstance(exprs, str):
         raise ValueError(f'Invalid selector {exprs}, was expecting a string.')
 
-    if not exprs.strip():
-        return []
+    instrs = []
+    while exprs.strip():
+        # Simple and Mixed selectors
+        if match := EQUAL_EXPR.match(exprs):
+            key, ope, value = match.groups()
+            instr = _op(OP_EQUAL, key, ope == '!=', value)
+        elif match := EXISTS_EXPR.match(exprs):  # Mixed
+            instr = _op(OP_EXIST, match.group(2) or _segs(match.group(3)))
+        elif match := NEXISTS_EXPR.match(exprs):  # Mixed
+            instr = _op(OP_NEXIST, match.group(2) or _segs(match.group(3)))
+        elif match := INSET_EXPR.match(exprs):
+            key, ope, vals = match.groups()
+            instr = _op(OP_INSET, key, ope == 'notin', _vals(vals))
+        elif match := SETIN_EXPR.match(exprs):
+            vals, ope, key = match.groups()
+            instr = _op(OP_SETIN, key, ope == 'notin', _vals(vals))
 
-    # Simple and Mixed selectors
-    if match := EQUAL_EXPR.match(exprs):
-        key, ope, value = match.groups()
-        instr = _opcode(OP_EQUAL, key, ope == '!=', value)
-    elif match := EXISTS_EXPR.match(exprs):  # Mixed
-        instr = _opcode(OP_EXIST, match.group(2) or _segs(match.group(3)))
-    elif match := NEXISTS_EXPR.match(exprs):  # Mixed
-        instr = _opcode(OP_NEXIST, match.group(2) or _segs(match.group(3)))
-    elif match := INSET_EXPR.match(exprs):
-        key, ope, vals, _ = match.groups()
-        instr = _opcode(OP_INSET, key, ope == 'notin', _vals(vals))
-    elif match := SETIN_EXPR.match(exprs):
-        vals, _, ope, key = match.groups()
-        instr = _opcode(OP_SETIN, key, ope == 'notin', _vals(vals))
+        # JSONPath
+        elif match := EQUAL_JEXPR.match(exprs):
+            segs, _, _, _, ope, qvalue = match.groups()
+            instr = _op(OP_EQUAL, _segs(segs), ope == '!=', qvalue[1:-1])
+        elif match := INSET_JEXPR.match(exprs):
+            segs, _, _, _, ope, qvals, _, _, _ = match.groups()
+            instr = _op(OP_INSET, _segs(segs), ope == 'notin', _qvals(qvals))
+        elif match := SETIN_JEXPR.match(exprs):
+            qvals, _, _, _, ope, segs, _, _, _ = match.groups()
+            instr = _op(OP_SETIN, _segs(segs), ope == 'notin', _qvals(qvals))
 
-    # JSONPath
-    elif match := EQUAL_JEXPR.match(exprs):
-        segs, _, _, _, ope, qvalue = match.groups()
-        instr = _opcode(OP_EQUAL, _segs(segs), ope == '!=', qvalue[1:-1])
-    elif match := INSET_JEXPR.match(exprs):
-        segs, _, _, _, ope, qvals, _, _, _ = match.groups()
-        instr = _opcode(OP_INSET, _segs(segs), ope == 'notin', _qvals(qvals))
-    elif match := SETIN_JEXPR.match(exprs):
-        qvals, _, _, _, ope, segs, _, _, _ = match.groups()
-        instr = _opcode(OP_SETIN, _segs(segs), ope == 'notin', _qvals(qvals))
+        # Invalid
+        else:
+            raise ValueError(f'Invalid selector expression {exprs}.')
 
-    # Invalid
-    else:
-        raise ValueError(f'Invalid selector expression {exprs}.')
+        instrs.append(instr)
+        exprs = exprs[match.end() :]
 
-    return [instr] + compile(exprs[match.end() :].strip(', '), resolve_path)
+    return instrs
 
 
 def _resolve_path(items: List[str], obj: Object) -> Tuple[bool, Optional[Any]]:
@@ -490,13 +492,13 @@ def match(
 
     A string selector is of form:
 
-        expr[,expr]*
+        [expr[,expr]*[,]]
 
-    where `expr` is one of `key`, `!key`, or `key op value`, with
-    `op` being one of `=`, `==`, or `!=`.  The
-    `key in (value[, value...])`, `key notin (value[, value...])`,
-    `(value[, value...]) in key`, and `(value[, value...]) notin key`
-    set-based requirements are also implemented.
+    where `expr` is one of `key`, `!key`, or `key op value`, with `op`
+    being one of `=`, `==`, or `!=`.  The `key in (value[, value...])`,
+    `key notin (value[, value...])`, `(value[, value...]) in key`, and
+    `(value[, value...]) notin key` set-based requirements are also
+    implemented.
 
     Field selectors are applied to the object itself, while label
     selectors are applied to the `metadata.labels` dictionary of the
