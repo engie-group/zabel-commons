@@ -216,6 +216,66 @@ JSONPath selectors can be mixed with field selectors.  For example:
 
     partition in (customerA, customerB),$.environment!="qa"
 
+??? note "Restrictions from RFC 9535"
+    [RFC 9535](https://datatracker.ietf.org/doc/html/rfc9535) defines
+    JSONPath.  This implementation only supports a subset of the syntax:
+
+    - Descendant segments and wildcard selectors are not allowed.
+    - Bracketed segments can only be quoted strings.  Functions, filter
+      selectors, and array indexes are not handled.
+
+## JSONPointer selectors
+
+Field selector keys can also use a restricted form of JSON pointers.  A
+JSON pointer key starts with a slash (`/`) followed by a series of
+field names or dictionary keys separated by slashes.  For example:
+
+```text
+/apiVersion
+/metadata/name
+/metadata/labels/app
+/metadata/labels/app~1domain~1component
+```
+
+They will match objects of the form:
+
+```json hl_lines="2 4 6-7"
+{
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "my-app-foo",
+    "labels": {
+      "app": "my-app",
+      "app/domain/component": "backend"
+    }
+  },
+  "spec": {}
+}
+```
+
+When a JSON pointer key is used, operators must be surrounded by spaces
+and the values, if any, must be quoted (that is, surrounded by single or
+double quotes):
+
+```text
+/metadata/name == 'my-app'
+/metadata/labels/app in ('my-app', "your-app")
+/foo.bar'/spec/image != "my-image:latest"
+```
+
+JSONPointer selectors can be mixed with other field selectors.  For
+example:
+
+    /partition in ('customerA', 'customerB'),$.environment!="qa"
+
+??? note "Restrictions from RFC 6901"
+    [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901) defines
+    JSON pointers.  This implementation only supports a subset of the
+    syntax:
+
+    - Spaces and commas are not allowed in JSON pointer keys.
+    - Array indexes are not handled.
+
 ## Usage
 
 ```python
@@ -248,8 +308,10 @@ sel2 = selectors.compile('abc, ghi.jkl == secret, ! mno')  # ok
 sel2 = selectors.compile('ghi . jkl == secret')            # invalid
 sel2 = selectors.compile('ghi.jkl == my secret')           # invalid
 
-# You must use JSONPath selectors if you need spaces in your values
+# You must use JSONPath or JSONPointer selectors if you need
+# spaces in your values
 sel2 = selectors.compile('$.ghi.jkl == "my secret"')       # ok
+sel2 = selectors.compile('/ghi/jkl == "my secret"')        # ok, too
 ```
 """
 
@@ -276,12 +338,14 @@ EQUAL_EXPR = re.compile(rf'^\s*{KEY}\s*([=!]?=)\s*({VALUE})\s*(?:,|$)')
 INSET_EXPR = re.compile(rf'^\s*{KEY}\s+(in|notin)\s+{SET}\s*(?:,|$)')
 SETIN_EXPR = re.compile(rf'^\s*{SET}\s+(in|notin)\s+{KEY}\s*(?:,|$)')
 
-# JSONPath selectors (https://www.rfc-editor.org/rfc/rfc9535)
+# JSONPath and JSONPointer selectors (rfc9535 & rfc6901)
 QVALUE = r'''('[^']*'|"[^"]*")'''
+QSET = rf'\(\s*({QVALUE}(\s*,\s*{QVALUE})*)\s*\)'
 DSEGMENT = r'\.([a-zA-Z_][a-z0-9A-Z_]*)'
 BSEGMENT = rf'\[\s*{QVALUE}\s*\]'
-SEGMENTS = rf'\$\s*(({DSEGMENT}|{BSEGMENT})*)'
-QSET = rf'\(\s*({QVALUE}(\s*,\s*{QVALUE})*)\s*\)'
+PATH = rf'\$\s*({DSEGMENT}|{BSEGMENT})*'
+POINTER = r'(/[^/, ]+)+'
+SEGMENTS = rf'({PATH}|{POINTER})'
 
 EQUAL_JEXPR = re.compile(rf'^\s*{SEGMENTS}\s*([=!]?=)\s*{QVALUE}\s*(?:,|$)')
 INSET_JEXPR = re.compile(rf'^\s*{SEGMENTS}\s+(in|notin)\s+{QSET}\s*(?:,|$)')
@@ -304,6 +368,13 @@ OP_SETIN = 0x100
 
 
 def _segs(segs: str) -> List[str]:
+    if segs[0] == '/':
+        return [
+            p.replace('~1', '/').replace('~0', '~')
+            for p in segs.lstrip('/').split('/')
+        ]
+
+    segs = segs[1:].lstrip()
     split: List[str] = []
     while segs:
         if match := re.match(DSEGMENT, segs):
@@ -366,7 +437,9 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
         val: Union[str, Set[str], None] = None,
     ) -> OpCode:
         if not resolve_path and isinstance(key, list):
-            raise ValueError('JSONPath not allowed in label selectors.')
+            raise ValueError(
+                'JSONPath and JSONPointer not allowed in label selectors.'
+            )
         if resolve_path and isinstance(key, str) and '.' in key:
             return code | OP_RESOLV, key.split('.'), neq, val
         if resolve_path and isinstance(key, list):
@@ -393,16 +466,16 @@ def compile(exprs: str, resolve_path: bool = True) -> List[OpCode]:
             vals, ope, key = match.groups()
             instr = _op(OP_SETIN, key, ope == 'notin', _vals(vals))
 
-        # JSONPath
+        # JSONPath & JSONPointer
         elif match := EQUAL_JEXPR.match(exprs):
-            segs, _, _, _, ope, qvalue = match.groups()
-            instr = _op(OP_EQUAL, _segs(segs), ope == '!=', qvalue[1:-1])
+            seg, _, _, _, _, ope, qvalue = match.groups()
+            instr = _op(OP_EQUAL, _segs(seg), ope == '!=', qvalue[1:-1])
         elif match := INSET_JEXPR.match(exprs):
-            segs, _, _, _, ope, qvals, _, _, _ = match.groups()
-            instr = _op(OP_INSET, _segs(segs), ope == 'notin', _qvals(qvals))
+            seg, _, _, _, _, ope, qvals, _, _, _ = match.groups()
+            instr = _op(OP_INSET, _segs(seg), ope == 'notin', _qvals(qvals))
         elif match := SETIN_JEXPR.match(exprs):
-            qvals, _, _, _, ope, segs, _, _, _ = match.groups()
-            instr = _op(OP_SETIN, _segs(segs), ope == 'notin', _qvals(qvals))
+            qvals, _, _, _, ope, seg, _, _, _, _ = match.groups()
+            instr = _op(OP_SETIN, _segs(seg), ope == 'notin', _qvals(qvals))
 
         # Invalid
         else:

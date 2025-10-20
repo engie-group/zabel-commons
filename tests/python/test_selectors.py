@@ -649,6 +649,44 @@ class TestSelectors(unittest.TestCase):
             )
         )
 
+    def test_match_pointer_nok(self):
+        self.assertFalse(
+            selectors.match(
+                {'hello': 'world'}, fieldselector='/hello == "hello2"'
+            )
+        )
+
+    def test_match_pointer_ok(self):
+        self.assertTrue(
+            selectors.match(
+                {'hello': {'world': 12}}, fieldselector='/hello/world == "12"'
+            )
+        )
+
+    def test_match_pointer_escape_ok(self):
+        self.assertTrue(
+            selectors.match(
+                {'hello': {'world/2': 12}},
+                fieldselector='/hello/world~12 == "12"',
+            )
+        )
+
+    def test_match_pointer_escape2_ok(self):
+        self.assertTrue(
+            selectors.match(
+                {'hello': {'world~12': 12}},
+                fieldselector='/hello/world~012 == "12"',
+            )
+        )
+
+    def test_match_pointer_multi_ok(self):
+        self.assertTrue(
+            selectors.match(
+                {'hello': {'world~12': 12}},
+                fieldselector='/hello,/hello/world~012',
+            )
+        )
+
     # prepare
 
     def test_prepare_none(self):
