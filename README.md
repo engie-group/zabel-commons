@@ -12,10 +12,11 @@ If you want to develop a package that offers new _elements_ for Zabel, or if
 you want to create an application that will be deployed using **zabel-fabric**,
 you will probably have to add this package as a dependency.
 
-It provides five modules:
+It provides six modules:
 
 - _zabel.commons.exceptions_
 - _zabel.commons.interfaces_
+- _zabel.commons.selectors_
 - _zabel.commons.sessions_
 - _zabel.commons.servers_
 - _zabel.commons.utils_

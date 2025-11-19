@@ -12,7 +12,8 @@ The transverse **zabel.commons** package.
 The **zabel.commons** package collects transverse classes, exceptions,
 and helper functions.
 
-It provides five modules, #::zabel.commons.exceptions,
+It provides six modules, #::zabel.commons.exceptions,
 #::zabel.commons.interfaces, #::zabel.commons.sessions,
-#::zabel.commons.servers, and #::zabel.commons.utils.
+#::zabel.commons.selectors, #::zabel.commons.servers, and
+#::zabel.commons.utils.
 """
