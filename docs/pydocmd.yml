@@ -15,6 +15,8 @@ generate:
     - zabel.commons.utils++
   - commons/servers.md:
     - zabel.commons.servers++
+  - commons/selectors.md:
+    - zabel.commons.selectors++
 
 pages:
   - Home: index.md << ../README.md
@@ -22,6 +24,7 @@ pages:
     - Overview: commons/index.md
     - Exceptions: commons/exceptions.md
     - Interfaces: commons/interfaces.md
+    - Selectors: commons/selectors.md
     - Servers: commons/servers.md
     - Sessions: commons/sessions.md
     - Utils: commons/utils.md

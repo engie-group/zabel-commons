@@ -28,3 +28,6 @@ src/classes.dot
 src/classes.png
 src/packages.dot
 src/packages.png
+
+# testing
+.coverage

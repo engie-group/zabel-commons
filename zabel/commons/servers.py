@@ -560,7 +560,7 @@ class ApiApp(ApiServer):
             if method := getattr(self, name, None):
                 # The 'entrypoint routes' attr may be on a super method
                 sms = [getattr(c, name, None) for c in self.__class__.mro()]
-                eps = [getattr(m, 'entrypoint routes', None) for m in sms]
+                eps = [getattr(m, ATTR_NAME, None) for m in sms]
                 for route in next((routes for routes in eps if routes), []):
                     routes.append((method, route))
         return routes
